@@ -143,8 +143,8 @@ The app uses an ocean-inspired color palette:
 ## 🔧 Configuration
 
 The app is configured to work with:
-- Organization: `com.halongtravel`
-- Package name: `ha_long_travel`
+- Organization: `com.quangninhtravel`
+- Package name: `quang_ninh_travel`
 - Supported platforms: iOS, Android, Web, macOS, Windows, Linux
 
 ## 📄 License

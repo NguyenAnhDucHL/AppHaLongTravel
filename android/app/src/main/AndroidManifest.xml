@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="ha_long_travel"
+        android:label="quang_ninh_travel"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

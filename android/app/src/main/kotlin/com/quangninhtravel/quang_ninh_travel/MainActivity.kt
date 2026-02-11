@@ -1,4 +1,4 @@
-package com.halongtravel.ha_long_travel
+package com.halongtravel.quang_ninh_travel
 
 import io.flutter.embedding.android.FlutterActivity
 

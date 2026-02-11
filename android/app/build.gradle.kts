@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.halongtravel.ha_long_travel"
+    namespace = "com.quangninhtravel.quang_ninh_travel"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.halongtravel.ha_long_travel"
+        applicationId = "com.quangninhtravel.quang_ninh_travel"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
