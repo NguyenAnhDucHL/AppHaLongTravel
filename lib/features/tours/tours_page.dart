@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ha_long_travel/app/themes/app_colors.dart';
 import 'package:ha_long_travel/app/themes/app_theme.dart';
 
@@ -9,7 +10,7 @@ class ToursPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tour Packages'),
+        title: Text('tours_title'.tr),
         actions: [
           IconButton(
             onPressed: () {},
@@ -55,7 +56,7 @@ class ToursPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(AppTheme.radiusS),
                             ),
                             child: Text(
-                              'Best Seller',
+                              'best_seller'.tr,
                               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.success,
                                 fontWeight: FontWeight.w600,
@@ -66,7 +67,7 @@ class ToursPage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppTheme.spacingS),
                       Text(
-                        'Ha Long Bay Adventure ${index + 1}',
+                        '${'tour_name'.tr} ${index + 1}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: AppTheme.spacingS),
@@ -75,14 +76,14 @@ class ToursPage extends StatelessWidget {
                           const Icon(Icons.schedule, size: 16, color: AppColors.textLight),
                           const SizedBox(width: 4),
                           Text(
-                            '${index % 3 + 1} Days',
+                            '${index % 3 + 1} ${'days'.tr}',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const SizedBox(width: AppTheme.spacingM),
                           const Icon(Icons.people, size: 16, color: AppColors.textLight),
                           const SizedBox(width: 4),
                           Text(
-                            'Max ${(index + 1) * 5} people',
+                            'max_people'.trParams({'count': '${(index + 1) * 5}'}),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -92,7 +93,7 @@ class ToursPage extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'From ',
+                            '${'from'.tr} ',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           Text(
@@ -103,7 +104,7 @@ class ToursPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            ' /person',
+                            ' ${'per_person'.tr}',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                           const Spacer(),
@@ -115,7 +116,7 @@ class ToursPage extends StatelessWidget {
                                 vertical: AppTheme.spacingS,
                               ),
                             ),
-                            child: const Text('Book Now'),
+                            child: Text('book_now'.tr),
                           ),
                         ],
                       ),

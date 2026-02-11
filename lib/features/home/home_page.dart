@@ -15,33 +15,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Map<String, dynamic>> _heroImages = [
-    {
-      'title': 'Discover Ha Long Bay',
-      'subtitle': 'UNESCO World Heritage Site',
-      'image': 'https://images.unsplash.com/photo-1528127269322-539801943592?w=800',
-    },
-    {
-      'title': 'Luxury Cruises',
-      'subtitle': 'Unforgettable Experiences',
-      'image': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
-    },
-    {
-      'title': 'Premium Hotels',
-      'subtitle': 'Comfort & Elegance',
-      'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _services = [
-    {'icon': Icons.hotel, 'label': 'Hotels', 'route': Routes.hotels, 'color': AppColors.primaryBlue},
-    {'icon': Icons.directions_boat, 'label': 'Cruises', 'route': Routes.cruises, 'color': AppColors.accentOrange},
-    {'icon': Icons.directions_car, 'label': 'Transport', 'route': Routes.transport, 'color': AppColors.accentCoral},
-    {'icon': Icons.restaurant, 'label': 'Restaurants', 'route': Routes.restaurants, 'color': AppColors.accentGold},
-    {'icon': Icons.tour, 'label': 'Tours', 'route': Routes.tours, 'color': AppColors.primaryLight},
-    {'icon': Icons.person, 'label': 'Profile', 'route': Routes.profile, 'color': AppColors.primaryDark},
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,11 +62,11 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome to',
+                'welcome_to'.tr,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               Text(
-                'Ha Long Travel',
+                'app_name'.tr,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   color: AppColors.primaryBlue,
                   fontWeight: FontWeight.bold,
@@ -123,6 +96,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildHeroCarousel() {
+    final heroImages = [
+      {
+        'title': 'hero_title_1'.tr,
+        'subtitle': 'hero_subtitle_1'.tr,
+        'image': 'https://images.unsplash.com/photo-1528127269322-539801943592?w=800',
+      },
+      {
+        'title': 'hero_title_2'.tr,
+        'subtitle': 'hero_subtitle_2'.tr,
+        'image': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800',
+      },
+      {
+        'title': 'hero_title_3'.tr,
+        'subtitle': 'hero_subtitle_3'.tr,
+        'image': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
+      },
+    ];
+
     return CarouselSlider(
       options: CarouselOptions(
         height: 200,
@@ -131,7 +122,7 @@ class _HomePageState extends State<HomePage> {
         enlargeCenterPage: true,
         viewportFraction: 0.9,
       ),
-      items: _heroImages.map((item) {
+      items: heroImages.map((item) {
         return Builder(
           builder: (BuildContext context) {
             return Container(
@@ -151,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                   fit: StackFit.expand,
                   children: [
                     Image.network(
-                      item['image'],
+                      item['image']!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -176,14 +167,14 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item['title'],
+                            item['title']!,
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            item['subtitle'],
+                            item['subtitle']!,
                             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.white70,
                             ),
@@ -202,13 +193,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildServicesSection() {
+    final services = [
+      {'icon': Icons.hotel, 'label': 'service_hotels'.tr, 'route': Routes.hotels, 'color': AppColors.primaryBlue},
+      {'icon': Icons.directions_boat, 'label': 'service_cruises'.tr, 'route': Routes.cruises, 'color': AppColors.accentOrange},
+      {'icon': Icons.directions_car, 'label': 'service_transport'.tr, 'route': Routes.transport, 'color': AppColors.accentCoral},
+      {'icon': Icons.restaurant, 'label': 'service_restaurants'.tr, 'route': Routes.restaurants, 'color': AppColors.accentGold},
+      {'icon': Icons.tour, 'label': 'service_tours'.tr, 'route': Routes.tours, 'color': AppColors.primaryLight},
+      {'icon': Icons.person, 'label': 'service_profile'.tr, 'route': Routes.profile, 'color': AppColors.primaryDark},
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
           child: Text(
-            'Our Services',
+            'our_services'.tr,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
         ),
@@ -224,11 +224,11 @@ class _HomePageState extends State<HomePage> {
               mainAxisSpacing: AppTheme.spacingM,
               childAspectRatio: 1,
             ),
-            itemCount: _services.length,
+            itemCount: services.length,
             itemBuilder: (context, index) {
-              final service = _services[index];
+              final service = services[index];
               return InkWell(
-                onTap: () => Get.toNamed(service['route']),
+                onTap: () => Get.toNamed(service['route'] as String),
                 borderRadius: BorderRadius.circular(AppTheme.radiusM),
                 child: Container(
                   decoration: BoxDecoration(
@@ -252,14 +252,14 @@ class _HomePageState extends State<HomePage> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          service['icon'],
+                          service['icon'] as IconData,
                           size: 32,
-                          color: service['color'],
+                          color: service['color'] as Color,
                         ),
                       ),
                       const SizedBox(height: AppTheme.spacingS),
                       Text(
-                        service['label'],
+                        service['label'] as String,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -285,12 +285,12 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Featured Deals',
+                'featured_deals'.tr,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               TextButton(
                 onPressed: () {},
-                child: const Text('View All'),
+                child: Text('view_all'.tr),
               ),
             ],
           ),
@@ -338,7 +338,7 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Special Package ${index + 1}',
+                            '${'special_package'.tr} ${index + 1}',
                             style: Theme.of(context).textTheme.titleLarge,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -350,7 +350,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  'Ha Long Bay',
+                                  'quang_ninh_bay'.tr,
                                   style: Theme.of(context).textTheme.bodySmall,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -385,7 +385,7 @@ class _HomePageState extends State<HomePage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
           child: Text(
-            'Popular Destinations',
+            'popular_destinations'.tr,
             style: Theme.of(context).textTheme.headlineMedium,
           ),
         ),
@@ -428,12 +428,12 @@ class _HomePageState extends State<HomePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'Destination ${index + 1}',
+                              '${'destination'.tr} ${index + 1}',
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: AppTheme.spacingXS),
                             Text(
-                              'Popular tourist spot in Ha Long',
+                              'popular_spot'.tr,
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],
@@ -461,7 +461,6 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _selectedIndex = index;
         });
-        // Navigate based on index
         switch (index) {
           case 1:
             Get.toNamed(Routes.search);
@@ -477,31 +476,31 @@ class _HomePageState extends State<HomePage> {
             break;
         }
       },
-      items: const [
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Home',
+          icon: const Icon(Icons.home_outlined),
+          activeIcon: const Icon(Icons.home),
+          label: 'nav_home'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          activeIcon: Icon(Icons.search),
-          label: 'Search',
+          icon: const Icon(Icons.search),
+          activeIcon: const Icon(Icons.search),
+          label: 'nav_search'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_today_outlined),
-          activeIcon: Icon(Icons.calendar_today),
-          label: 'Bookings',
+          icon: const Icon(Icons.calendar_today_outlined),
+          activeIcon: const Icon(Icons.calendar_today),
+          label: 'nav_bookings'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_outline),
-          activeIcon: Icon(Icons.favorite),
-          label: 'Favorites',
+          icon: const Icon(Icons.favorite_outline),
+          activeIcon: const Icon(Icons.favorite),
+          label: 'nav_favorites'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profile',
+          icon: const Icon(Icons.person_outline),
+          activeIcon: const Icon(Icons.person),
+          label: 'nav_profile'.tr,
         ),
       ],
     );

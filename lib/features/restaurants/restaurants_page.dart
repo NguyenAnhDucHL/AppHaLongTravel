@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ha_long_travel/app/themes/app_colors.dart';
 import 'package:ha_long_travel/app/themes/app_theme.dart';
 
@@ -7,34 +8,24 @@ class RestaurantsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cuisines = ['All', 'Vietnamese', 'Seafood', 'Chinese', 'Western'];
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Restaurants'),
+        title: Text('restaurants_title'.tr),
       ),
       body: Column(
         children: [
           SizedBox(
             height: 50,
-            child: ListView.builder(
+            child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-              itemCount: cuisines.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(right: AppTheme.spacingS),
-                  child: ChoiceChip(
-                    label: Text(cuisines[index]),
-                    selected: index == 0,
-                    selectedColor: AppColors.accentGold.withOpacity(0.2),
-                    labelStyle: TextStyle(
-                      color: index == 0 ? AppColors.accentGold : AppColors.textMedium,
-                      fontWeight: index == 0 ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                );
-              },
+              children: [
+                _buildChip(context, 'cuisine_all'.tr, true),
+                _buildChip(context, 'cuisine_vietnamese'.tr, false),
+                _buildChip(context, 'cuisine_seafood'.tr, false),
+                _buildChip(context, 'cuisine_chinese'.tr, false),
+                _buildChip(context, 'cuisine_western'.tr, false),
+              ],
             ),
           ),
           Expanded(
@@ -64,12 +55,12 @@ class RestaurantsPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Restaurant ${index + 1}',
+                                '${'restaurant'.tr} ${index + 1}',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                               const SizedBox(height: AppTheme.spacingXS),
                               Text(
-                                'Vietnamese Cuisine',
+                                'vietnamese_cuisine'.tr,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
                               const SizedBox(height: AppTheme.spacingS),
@@ -93,7 +84,7 @@ class RestaurantsPage extends StatelessWidget {
                                   const Icon(Icons.location_on, size: 14, color: AppColors.textLight),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${(index + 1) * 0.5} km away',
+                                    '${(index + 1) * 0.5} ${'km_away'.tr}',
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],
@@ -109,6 +100,21 @@ class RestaurantsPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildChip(BuildContext context, String label, bool selected) {
+    return Container(
+      margin: const EdgeInsets.only(right: AppTheme.spacingS),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        selectedColor: AppColors.accentGold.withOpacity(0.2),
+        labelStyle: TextStyle(
+          color: selected ? AppColors.accentGold : AppColors.textMedium,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ha_long_travel/app/themes/app_colors.dart';
 import 'package:ha_long_travel/app/themes/app_theme.dart';
 
@@ -9,7 +10,7 @@ class HotelsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hotels & Resorts'),
+        title: Text('hotels_title'.tr),
         actions: [
           IconButton(
             onPressed: () {},
@@ -44,7 +45,7 @@ class HotelsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hotel Paradise ${index + 1}',
+                        '${'hotel_name'.tr} ${index + 1}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: AppTheme.spacingS),
@@ -53,7 +54,7 @@ class HotelsPage extends StatelessWidget {
                           const Icon(Icons.location_on, size: 16, color: AppColors.textLight),
                           const SizedBox(width: 4),
                           Text(
-                            'Ha Long City',
+                            'hotel_location'.tr,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -73,7 +74,7 @@ class HotelsPage extends StatelessWidget {
                           ),
                           const Spacer(),
                           Text(
-                            '\$${(index + 1) * 80}/night',
+                            '\$${(index + 1) * 80}${'per_night'.tr}',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: AppColors.primaryBlue,
                               fontWeight: FontWeight.bold,

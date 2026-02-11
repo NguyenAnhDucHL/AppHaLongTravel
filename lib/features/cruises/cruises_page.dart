@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ha_long_travel/app/themes/app_colors.dart';
 import 'package:ha_long_travel/app/themes/app_theme.dart';
 
@@ -9,7 +10,7 @@ class CruisesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cruise Tours'),
+        title: Text('cruises_title'.tr),
         actions: [
           IconButton(
             onPressed: () {},
@@ -53,7 +54,7 @@ class CruisesPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppTheme.radiusS),
                         ),
                         child: Text(
-                          index % 2 == 0 ? 'Luxury' : 'Standard',
+                          index % 2 == 0 ? 'cruise_luxury'.tr : 'cruise_standard'.tr,
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: index % 2 == 0 ? AppColors.accentGold : AppColors.primaryBlue,
                             fontWeight: FontWeight.w600,
@@ -62,7 +63,7 @@ class CruisesPage extends StatelessWidget {
                       ),
                       const SizedBox(height: AppTheme.spacingS),
                       Text(
-                        'Ha Long Cruise ${index + 1}',
+                        '${'cruise_name'.tr} ${index + 1}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: AppTheme.spacingS),
@@ -71,7 +72,7 @@ class CruisesPage extends StatelessWidget {
                           const Icon(Icons.schedule, size: 16, color: AppColors.textLight),
                           const SizedBox(width: 4),
                           Text(
-                            index % 3 == 0 ? '2 Days 1 Night' : '1 Day Tour',
+                            index % 3 == 0 ? 'cruise_2d1n'.tr : 'cruise_1d'.tr,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],

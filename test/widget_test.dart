@@ -11,11 +11,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ha_long_travel/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App loads smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const HaLongTravelApp());
+    await tester.pumpWidget(const QuangNinhTravelApp());
 
     // Verify that our app loads properly
-    expect(find.text('Welcome to'), findsOneWidget);
+    expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:ha_long_travel/app/themes/app_colors.dart';
 import 'package:ha_long_travel/app/themes/app_theme.dart';
 
@@ -8,15 +9,15 @@ class TransportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = [
-      {'title': 'Airport Transfer', 'icon': Icons.local_airport, 'price': 30},
-      {'title': 'Private Car', 'icon': Icons.directions_car, 'price': 50},
-      {'title': 'Car with Driver', 'icon': Icons.car_rental, 'price': 80},
-      {'title': 'Bus Rental', 'icon': Icons.directions_bus, 'price': 150},
+      {'title': 'transport_airport'.tr, 'icon': Icons.local_airport, 'price': 30},
+      {'title': 'transport_private_car'.tr, 'icon': Icons.directions_car, 'price': 50},
+      {'title': 'transport_car_driver'.tr, 'icon': Icons.car_rental, 'price': 80},
+      {'title': 'transport_bus'.tr, 'icon': Icons.directions_bus, 'price': 150},
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transport Services'),
+        title: Text('transport_title'.tr),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(AppTheme.spacingM),
@@ -44,7 +45,7 @@ class TransportPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               subtitle: Text(
-                'Available 24/7',
+                'available_24_7'.tr,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               trailing: Column(
@@ -59,7 +60,7 @@ class TransportPage extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'per trip',
+                    'per_trip'.tr,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
