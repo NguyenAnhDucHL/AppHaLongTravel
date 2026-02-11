@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
+import 'package:quang_ninh_travel/core/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -21,6 +22,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -64,6 +66,26 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               const SizedBox(height: 32),
 
+              // Error Message
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+              ],
+
               // Full Name
               _buildField(
                 label: 'full_name'.tr,
@@ -99,6 +121,7 @@ class _RegisterPageState extends State<RegisterPage> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                onChanged: (_) => setState(() => _errorMessage = null),
                 decoration: _inputDecoration(
                   hint: 'password_hint'.tr,
                   icon: Icons.lock_outline,
@@ -119,6 +142,7 @@ class _RegisterPageState extends State<RegisterPage> {
               TextField(
                 controller: _confirmController,
                 obscureText: _obscureConfirm,
+                onChanged: (_) => setState(() => _errorMessage = null),
                 decoration: _inputDecoration(
                   hint: 'confirm_password_hint'.tr,
                   icon: Icons.lock_outline,
@@ -170,22 +194,24 @@ class _RegisterPageState extends State<RegisterPage> {
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
-                  onPressed: _agreeTerms ? () => Get.offAllNamed(Routes.home) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.divider,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                child: Obx(() {
+                  final authService = Get.find<AuthService>();
+                  return ElevatedButton(
+                    onPressed: (_agreeTerms && !authService.isLoading.value) ? _handleRegister : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: AppColors.divider,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      ),
+                      elevation: 2,
                     ),
-                    elevation: 2,
-                  ),
-                  child: Text(
-                    'sign_up'.tr,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
+                    child: authService.isLoading.value
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text('sign_up'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  );
+                }),
               ),
               const SizedBox(height: AppTheme.spacingL),
 
@@ -215,6 +241,54 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  void _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    // Validation
+    if (name.isEmpty) {
+      setState(() => _errorMessage = 'Vui lòng nhập họ tên');
+      return;
+    }
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Email không hợp lệ');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
+    if (password != confirm) {
+      setState(() => _errorMessage = 'Mật khẩu xác nhận không khớp');
+      return;
+    }
+
+    final authService = Get.find<AuthService>();
+    final success = await authService.register(
+      name: name,
+      email: email,
+      password: password,
+      phone: phone,
+    );
+
+    if (success) {
+      Get.snackbar(
+        '🎉 Đăng ký thành công!',
+        'Chào mừng $name đến với Quảng Ninh Travel',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: AppColors.success.withOpacity(0.9),
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+      Get.offAllNamed(Routes.home);
+    } else {
+      setState(() => _errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.');
+    }
+  }
+
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -230,6 +304,7 @@ class _RegisterPageState extends State<RegisterPage> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          onChanged: (_) => setState(() => _errorMessage = null),
           decoration: _inputDecoration(hint: hint, icon: icon),
         ),
       ],

@@ -4,6 +4,7 @@ import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:quang_ninh_travel/core/services/auth_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -58,20 +59,46 @@ class _HomePageState extends State<HomePage> {
       padding: const EdgeInsets.all(AppTheme.spacingM),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'welcome_to'.tr,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              Text(
-                'app_name'.tr,
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Obx(() {
+                final authService = Get.find<AuthService>();
+                if (authService.isLoggedIn.value) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Xin chào,', // TODO: Add to translations
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      Text(
+                        authService.userName.value,
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          color: AppColors.primaryBlue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20, // Slightly smaller for names
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'welcome_to'.tr,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    Text(
+                      'app_name'.tr,
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: AppColors.primaryBlue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                );
+              }),
             ],
           ),
           const Spacer(),

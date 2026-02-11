@@ -17,16 +17,19 @@ import 'package:quang_ninh_travel/features/bookings/booking_detail_page.dart';
 import 'package:quang_ninh_travel/features/favorites/favorites_page.dart';
 import 'package:quang_ninh_travel/features/payment/payment_methods_page.dart';
 import 'package:quang_ninh_travel/features/admin/admin_page.dart';
+import 'package:quang_ninh_travel/features/admin/manage_users_page.dart';
 import 'package:quang_ninh_travel/features/splash/splash_page.dart';
 import 'package:quang_ninh_travel/features/onboarding/onboarding_page.dart';
 import 'package:quang_ninh_travel/features/auth/login_page.dart';
 import 'package:quang_ninh_travel/features/auth/register_page.dart';
+import 'package:quang_ninh_travel/features/auth/forgot_password_page.dart';
 import 'package:quang_ninh_travel/features/search/search_page.dart';
 import 'package:quang_ninh_travel/features/checkout/checkout_page.dart';
 import 'package:quang_ninh_travel/features/settings/settings_page.dart';
 import 'package:quang_ninh_travel/features/notifications/notifications_page.dart';
 import 'package:quang_ninh_travel/features/help/help_support_page.dart';
 import 'package:quang_ninh_travel/features/reviews/write_review_page.dart';
+import 'package:quang_ninh_travel/core/guards/auth_guard.dart';
 
 part 'app_routes.dart';
 
@@ -144,6 +147,13 @@ class AppPages {
       name: Routes.admin,
       page: () => const AdminPage(),
       transition: Transition.rightToLeft,
+      middlewares: [ManagementGuard()],
+    ),
+    GetPage(
+      name: Routes.manageUsers,
+      page: () => const ManageUsersPage(),
+      transition: Transition.rightToLeft,
+      middlewares: [AdminGuard()],
     ),
     GetPage(
       name: Routes.search,
@@ -173,6 +183,11 @@ class AppPages {
     GetPage(
       name: Routes.writeReview,
       page: () => const WriteReviewPage(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: Routes.forgotPassword,
+      page: () => const ForgotPasswordPage(),
       transition: Transition.rightToLeft,
     ),
   ];

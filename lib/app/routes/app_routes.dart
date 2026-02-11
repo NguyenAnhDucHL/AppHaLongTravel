@@ -44,6 +44,7 @@ class Routes {
   
   // Admin
   static const String admin = '/admin';
+  static const String manageUsers = '/manage-users';
   
   // Search
   static const String search = '/search';
@@ -56,4 +57,5 @@ class Routes {
   static const String settings = '/settings';
   static const String notifications = '/notifications';
   static const String helpSupport = '/help-support';
+  static const String forgotPassword = '/forgot-password';
 }

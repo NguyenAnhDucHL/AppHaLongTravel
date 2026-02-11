@@ -4,14 +4,19 @@ import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 import 'package:quang_ninh_travel/core/l10n/app_translations.dart';
 import 'package:quang_ninh_travel/core/services/language_service.dart';
+import 'package:quang_ninh_travel/core/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize language service
+  // Initialize services
   final languageService = LanguageService();
   await languageService.init();
   Get.put(languageService);
+  
+  final authService = AuthService();
+  await authService.init();
+  Get.put(authService);
   
   runApp(const QuangNinhTravelApp());
 }
