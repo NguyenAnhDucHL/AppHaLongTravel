@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ha_long_travel/app/themes/app_colors.dart';
-import 'package:ha_long_travel/app/themes/app_theme.dart';
+import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 
 class NotificationsPage extends StatelessWidget {
   const NotificationsPage({super.key});

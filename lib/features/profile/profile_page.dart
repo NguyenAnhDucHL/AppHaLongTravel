@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:ha_long_travel/app/themes/app_colors.dart';
-import 'package:ha_long_travel/app/themes/app_theme.dart';
-import 'package:ha_long_travel/app/routes/app_pages.dart';
-import 'package:ha_long_travel/core/services/language_service.dart';
+import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:quang_ninh_travel/app/routes/app_pages.dart';
+import 'package:quang_ninh_travel/core/services/language_service.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});

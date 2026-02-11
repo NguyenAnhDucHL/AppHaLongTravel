@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:ha_long_travel/app/themes/app_colors.dart';
-import 'package:ha_long_travel/app/routes/app_pages.dart';
+import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
