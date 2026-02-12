@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read for services
+    match /hotels/{document} { allow read; }
+    match /cruises/{document} { allow read; }
+    match /tours/{document} { allow read; }
+    match /restaurants/{document} { allow read; }
+    match /transport/{document} { allow read; }
+    match /reviews/{document} { allow read; }
+    
+    // Default: Authenticated write, Public read (adjust for production)
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

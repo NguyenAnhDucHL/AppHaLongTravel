@@ -250,8 +250,8 @@ const transport = [
     { vehicleType: 'speedboat', capacity: 12, pricePerKm: 50000, available: true, description: 'Tàu cao tốc ra đảo' },
 ];
 
-async function seed() {
-    console.log('🌱 Seeding Quang Ninh Travel database...\n');
+export async function seedDatabase(db: admin.firestore.Firestore) {
+    console.log('🌱 Seeding Quang Ninh Travel database...');
 
     const collections = [
         { name: 'hotels', data: hotels },
@@ -261,7 +261,17 @@ async function seed() {
         { name: 'transport', data: transport },
     ];
 
+    const results: any[] = [];
+
     for (const { name, data } of collections) {
+        // Check if collection is empty to avoid duplicates
+        const snapshot = await db.collection(name).limit(1).get();
+        if (!snapshot.empty) {
+            console.log(`⚠ Collection ${name} is not empty, skipping...`);
+            results.push({ collection: name, status: 'skipped', reason: 'not empty' });
+            continue;
+        }
+
         console.log(`📦 Seeding ${name}...`);
         const batch = db.batch();
         for (const item of data) {
@@ -270,10 +280,9 @@ async function seed() {
         }
         await batch.commit();
         console.log(`   ✓ ${data.length} ${name} added`);
+        results.push({ collection: name, status: 'seeded', count: data.length });
     }
 
     console.log('\n✅ Seed complete!');
-    process.exit(0);
+    return results;
 }
-
-seed().catch((e) => { console.error('Seed failed:', e); process.exit(1); });

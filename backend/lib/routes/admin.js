@@ -6,6 +6,7 @@ const validation_1 = require("../middleware/validation");
 const booking_service_1 = require("../services/booking.service");
 const auth_service_1 = require("../services/auth.service");
 const firebase_1 = require("../config/firebase");
+const seed_data_1 = require("../seed/seed-data");
 const router = (0, express_1.Router)();
 // GET /api/admin/stats — Admin + Collaborator
 router.get('/stats', auth_1.authenticate, (0, auth_1.requireRole)('admin', 'collaborator'), async (_req, res) => {
@@ -169,6 +170,17 @@ router.delete('/users/:id', auth_1.authenticate, (0, auth_1.requireRole)('admin'
     }
     catch (error) {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
+// Seed database (Admin only - or open for first run if needed, currently protected)
+// curl -X POST https://<region>-<project>.cloudfunctions.net/api/api/admin/seed -H "Authorization: Bearer <token>"
+router.post('/seed', async (req, res) => {
+    try {
+        const results = await (0, seed_data_1.seedDatabase)(firebase_1.db);
+        res.json({ success: true, results });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: 'Seed failed', details: error });
     }
 });
 exports.default = router;

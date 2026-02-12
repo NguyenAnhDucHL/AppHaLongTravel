@@ -3,6 +3,10 @@ const Map<String, String> enUS = {
   // App
   'app_name': 'Quang Ninh Travel',
   'welcome_to': 'Welcome to',
+  'success': 'Success',
+  'error': 'Error',
+  'profile_updated': 'Profile updated successfully',
+  'update_failed': 'Failed to update profile',
 
   // Bottom Nav
   'nav_home': 'Home',

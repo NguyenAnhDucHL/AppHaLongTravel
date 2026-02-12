@@ -9,6 +9,7 @@ import 'package:quang_ninh_travel/features/admin/manage_restaurants_page.dart';
 import 'package:quang_ninh_travel/features/admin/manage_reviews_page.dart';
 import 'package:quang_ninh_travel/features/admin/manage_deals_page.dart';
 import 'package:quang_ninh_travel/core/services/auth_service.dart';
+import 'package:quang_ninh_travel/core/services/seed_service.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 
 class AdminPage extends StatelessWidget {
@@ -159,6 +160,13 @@ class AdminPage extends StatelessWidget {
           _quickAction(context, '🍽', 'Thêm NH', AppColors.accentGold, () => _navigateTo(context, const ManageRestaurantsPage())),
           const SizedBox(width: 10),
           _quickAction(context, '🎁', 'Ưu đãi', AppColors.accentCoral, () => _navigateTo(context, const ManageDealsPage())),
+          const SizedBox(width: 10),
+          _quickAction(context, '☁️', 'Nạp Data', Colors.purple, () async {
+             Get.dialog(const Center(child: CircularProgressIndicator()));
+             final seedService = Get.put(SeedService());
+             await seedService.seedData();
+             Get.back(); // close loading
+          }),
         ],
       ),
     );

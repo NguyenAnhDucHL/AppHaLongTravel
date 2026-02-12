@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '14.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -39,5 +39,44 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      # Force C++17 for all pods to fix gRPC/Firestore build issues
+      config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+
+      # Debug dump for BoringSSL-GRPC
+      if target.name == 'BoringSSL-GRPC'
+         puts "--- Build Settings for #{target.name} (#{config.name}) ---"
+         config.build_settings.each do |k, v|
+           puts "#{k}: #{v}" if v.to_s.include?('-G')
+         end
+         puts "--------------------------------------------------------"
+      end
+
+      ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'GCC_PREPROCESSOR_DEFINITIONS', 'WARNING_CFLAGS'].each do |key|
+        flags = config.build_settings[key]
+        if flags
+           # Remove -G and -GCC_WARN_INHIBIT_ALL_WARNINGS (misinterpreted as -G)
+           if flags.is_a?(String)
+             config.build_settings[key] = flags.gsub(/-GCC_WARN_INHIBIT_ALL_WARNINGS/, '').gsub(/(^|\s)-G($|\s)/, '\1\2').strip
+           elsif flags.is_a?(Array)
+             config.build_settings[key] = flags.reject { |f| f == '-G' || f == '-GCC_WARN_INHIBIT_ALL_WARNINGS' }
+           end
+        end
+      end
+    end
+    
+    # Check file-level settings
+    if target.respond_to?(:source_build_phase) && target.source_build_phase
+      target.source_build_phase.files.each do |file|
+        if file.respond_to?(:settings) && file.settings
+          file.settings.each do |k, v|
+             if k == 'COMPILER_FLAGS' && v.is_a?(String)
+                file.settings[k] = v.gsub(/-GCC_WARN_INHIBIT_ALL_WARNINGS/, '').gsub(/(^|\s)-G($|\s)/, '\1\2').strip
+             end
+          end
+        end
+      end
+    end
   end
 end

@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.seedDatabase = seedDatabase;
 const admin = __importStar(require("firebase-admin"));
 // Initialize with service account for local seeding
 // Run: npx ts-node src/seed/seed-data.ts
@@ -278,8 +279,8 @@ const transport = [
     { vehicleType: 'motorbike', capacity: 2, pricePerKm: 5000, available: true, description: 'Xe máy tay ga' },
     { vehicleType: 'speedboat', capacity: 12, pricePerKm: 50000, available: true, description: 'Tàu cao tốc ra đảo' },
 ];
-async function seed() {
-    console.log('🌱 Seeding Quang Ninh Travel database...\n');
+async function seedDatabase(db) {
+    console.log('🌱 Seeding Quang Ninh Travel database...');
     const collections = [
         { name: 'hotels', data: hotels },
         { name: 'cruises', data: cruises },
@@ -287,7 +288,15 @@ async function seed() {
         { name: 'restaurants', data: restaurants },
         { name: 'transport', data: transport },
     ];
+    const results = [];
     for (const { name, data } of collections) {
+        // Check if collection is empty to avoid duplicates
+        const snapshot = await db.collection(name).limit(1).get();
+        if (!snapshot.empty) {
+            console.log(`⚠ Collection ${name} is not empty, skipping...`);
+            results.push({ collection: name, status: 'skipped', reason: 'not empty' });
+            continue;
+        }
         console.log(`📦 Seeding ${name}...`);
         const batch = db.batch();
         for (const item of data) {
@@ -296,9 +305,9 @@ async function seed() {
         }
         await batch.commit();
         console.log(`   ✓ ${data.length} ${name} added`);
+        results.push({ collection: name, status: 'seeded', count: data.length });
     }
     console.log('\n✅ Seed complete!');
-    process.exit(0);
+    return results;
 }
-seed().catch((e) => { console.error('Seed failed:', e); process.exit(1); });
 //# sourceMappingURL=seed-data.js.map

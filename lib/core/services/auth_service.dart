@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -5,15 +7,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum UserRole { admin, collaborator, customer, guest }
 
 /// Auth service for managing user authentication and role-based access.
-/// Currently uses local state, ready for Firebase Auth integration.
+/// Uses Firebase Auth and Firestore.
 class AuthService extends GetxService {
   static const String _roleKey = 'user_role';
-  static const String _emailKey = 'user_email';
-  static const String _nameKey = 'user_name';
-  static const String _isLoggedInKey = 'is_logged_in';
-  static const String _uidKey = 'user_uid';
-  static const String _avatarKey = 'user_avatar';
-  static const String _phoneKey = 'user_phone';
+  
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Observable state
   final isLoggedIn = false.obs;
@@ -22,24 +21,23 @@ class AuthService extends GetxService {
   final userEmail = ''.obs;
   final userPhone = ''.obs;
   final userAvatar = ''.obs;
+  final userBio = ''.obs;
   final userUid = ''.obs;
   final isLoading = false.obs;
+  
+  // Expose user for other services
+  User? get currentUser => _auth.currentUser;
 
-  /// Initialize — load saved session
+  /// Initialize — check current session
   Future<AuthService> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    isLoggedIn.value = prefs.getBool(_isLoggedInKey) ?? false;
-    userName.value = prefs.getString(_nameKey) ?? '';
-    userEmail.value = prefs.getString(_emailKey) ?? '';
-    userPhone.value = prefs.getString(_phoneKey) ?? '';
-    userAvatar.value = prefs.getString(_avatarKey) ?? '';
-    userUid.value = prefs.getString(_uidKey) ?? '';
-
-    final roleStr = prefs.getString(_roleKey) ?? 'guest';
-    currentRole.value = UserRole.values.firstWhere(
-      (r) => r.name == roleStr,
-      orElse: () => UserRole.guest,
-    );
+    // Listen to Auth State Changes
+    _auth.authStateChanges().listen((User? user) async {
+      if (user == null) {
+        await _clearSession();
+      } else {
+        await _fetchUserProfile(user.uid);
+      }
+    });
 
     return this;
   }
@@ -48,37 +46,21 @@ class AuthService extends GetxService {
   Future<bool> login(String email, String password) async {
     isLoading.value = true;
     try {
-      // TODO: Replace with Firebase Auth signInWithEmailAndPassword
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // Simulate role lookup — in production, fetch from Firestore
-      UserRole role = UserRole.customer;
-      String name = 'Khách hàng';
-
-      if (email.contains('admin')) {
-        role = UserRole.admin;
-        name = 'Quản trị viên';
-      } else if (email.contains('collab') || email.contains('ctv')) {
-        role = UserRole.collaborator;
-        name = 'Cộng tác viên';
-      }
-
-      await _saveSession(
-        uid: 'uid_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        name: name,
-        role: role,
-      );
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      // Auth state listener will handle the rest
       return true;
     } catch (e) {
+      print('Login error: $e');
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  /// Register new account (always customer role)
-  Future<bool> register({
+  /// Register new account
+  /// Register new account
+  /// Returns null if success, otherwise returns error message
+  Future<String?> register({
     required String name,
     required String email,
     required String password,
@@ -86,18 +68,73 @@ class AuthService extends GetxService {
   }) async {
     isLoading.value = true;
     try {
-      // TODO: Replace with Firebase Auth createUserWithEmailAndPassword
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      await _saveSession(
-        uid: 'uid_${DateTime.now().millisecondsSinceEpoch}',
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
-        name: name,
-        role: UserRole.customer,
-        phone: phone,
+        password: password,
       );
+
+      if (credential.user != null) {
+        // Create user document in Firestore
+        await _db.collection('users').doc(credential.user!.uid).set({
+          'email': email,
+          'displayName': name,
+          'phoneNumber': phone,
+          'role': 'customer', // Default role
+          'photoURL': '',
+          'isActive': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        
+        // Update Firebase Profile
+        await credential.user!.updateDisplayName(name);
+      }
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      print('Firebase Auth Error: ${e.code} - ${e.message}');
+      return e.message ?? 'Lỗi xác thực không xác định';
+    } catch (e) {
+      print('Register general error: $e');
+      return e.toString();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Update user profile
+  Future<bool> updateProfile({
+    String? name,
+    String? phone,
+    String? photoURL,
+    String? bio,
+  }) async {
+    isLoading.value = true;
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      final updates = <String, dynamic>{};
+      if (name != null) {
+        updates['displayName'] = name;
+        await user.updateDisplayName(name);
+      }
+      if (phone != null) updates['phoneNumber'] = phone;
+      if (photoURL != null) {
+        updates['photoURL'] = photoURL;
+        await user.updatePhotoURL(photoURL);
+      }
+      if (bio != null) updates['bio'] = bio;
+
+      if (updates.isNotEmpty) {
+        updates['updatedAt'] = FieldValue.serverTimestamp();
+        await _db.collection('users').doc(user.uid).update(updates);
+        
+        // Refresh local state
+        await _fetchUserProfile(user.uid);
+      }
+      
       return true;
     } catch (e) {
+      print('Update profile error: $e');
       return false;
     } finally {
       isLoading.value = false;
@@ -108,23 +145,7 @@ class AuthService extends GetxService {
   Future<void> signOut() async {
     isLoading.value = true;
     try {
-      // TODO: Firebase Auth signOut
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_isLoggedInKey);
-      await prefs.remove(_roleKey);
-      await prefs.remove(_emailKey);
-      await prefs.remove(_nameKey);
-      await prefs.remove(_uidKey);
-      await prefs.remove(_avatarKey);
-      await prefs.remove(_phoneKey);
-
-      isLoggedIn.value = false;
-      currentRole.value = UserRole.guest;
-      userName.value = '';
-      userEmail.value = '';
-      userPhone.value = '';
-      userAvatar.value = '';
-      userUid.value = '';
+      await _auth.signOut();
     } finally {
       isLoading.value = false;
     }
@@ -134,8 +155,7 @@ class AuthService extends GetxService {
   Future<bool> resetPassword(String email) async {
     isLoading.value = true;
     try {
-      // TODO: Firebase Auth sendPasswordResetEmail
-      await Future.delayed(const Duration(milliseconds: 600));
+      await _auth.sendPasswordResetEmail(email: email);
       return true;
     } catch (e) {
       return false;
@@ -144,18 +164,62 @@ class AuthService extends GetxService {
     }
   }
 
-  // ===== ROLE CHECKS =====
+  // ===== HELPER METHODS =====
+
+  Future<void> _fetchUserProfile(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        
+        isLoggedIn.value = true;
+        userUid.value = uid;
+        userEmail.value = data['email'] ?? '';
+        userName.value = data['displayName'] ?? '';
+        userPhone.value = data['phoneNumber'] ?? '';
+        userAvatar.value = data['photoURL'] ?? '';
+        userBio.value = data['bio'] ?? '';
+
+        final roleStr = data['role'] ?? 'customer';
+        currentRole.value = UserRole.values.firstWhere(
+          (r) => r.name == roleStr,
+          orElse: () => UserRole.customer,
+        );
+        
+        // Cache role locally for offline checks if needed
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_roleKey, roleStr);
+      }
+    } catch (e) {
+      print('Error fetching profile: $e');
+    }
+  }
+
+  Future<void> _clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_roleKey);
+
+    isLoggedIn.value = false;
+    currentRole.value = UserRole.guest;
+    userName.value = '';
+    userEmail.value = '';
+    userPhone.value = '';
+    userAvatar.value = '';
+    userBio.value = '';
+    userUid.value = '';
+  }
+
+  // ===== ROLE CHECKS (Same as before) =====
 
   bool get isAdmin => currentRole.value == UserRole.admin;
   bool get isCollaborator => currentRole.value == UserRole.collaborator;
   bool get isCustomer => currentRole.value == UserRole.customer;
   bool get isGuest => currentRole.value == UserRole.guest || !isLoggedIn.value;
 
-  /// Check if user has permission for a specific action
   bool hasPermission(String permission) {
     switch (currentRole.value) {
       case UserRole.admin:
-        return true; // Admin has all permissions
+        return true;
       case UserRole.collaborator:
         return ['manage_assigned_services', 'view_bookings', 'respond_reviews', 'view_stats']
             .contains(permission);
@@ -167,64 +231,25 @@ class AuthService extends GetxService {
     }
   }
 
-  /// Check if user can access admin panel
   bool get canAccessAdmin => isAdmin || isCollaborator;
-
-  /// Check if user can book services
   bool get canBook => isAdmin || isCollaborator || isCustomer;
-
-  /// Check if user can write reviews
   bool get canReview => isAdmin || isCustomer;
 
-  /// User initials for avatar
   String get initials {
     if (userName.value.isEmpty) return '?';
     final parts = userName.value.split(' ');
     if (parts.length >= 2) {
       return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
     }
-    return userName.value[0].toUpperCase();
+    return userName.value[0].toUpperCase() ?? '?';
   }
 
-  /// Role display name in Vietnamese
   String get roleDisplayName {
     switch (currentRole.value) {
-      case UserRole.admin:
-        return 'Quản trị viên';
-      case UserRole.collaborator:
-        return 'Cộng tác viên';
-      case UserRole.customer:
-        return 'Khách hàng';
-      case UserRole.guest:
-        return 'Khách';
+      case UserRole.admin: return 'Quản trị viên';
+      case UserRole.collaborator: return 'Cộng tác viên';
+      case UserRole.customer: return 'Khách hàng';
+      case UserRole.guest: return 'Khách';
     }
-  }
-
-  // ===== PRIVATE =====
-
-  Future<void> _saveSession({
-    required String uid,
-    required String email,
-    required String name,
-    required UserRole role,
-    String phone = '',
-    String avatar = '',
-  }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_isLoggedInKey, true);
-    await prefs.setString(_uidKey, uid);
-    await prefs.setString(_emailKey, email);
-    await prefs.setString(_nameKey, name);
-    await prefs.setString(_roleKey, role.name);
-    await prefs.setString(_phoneKey, phone);
-    await prefs.setString(_avatarKey, avatar);
-
-    isLoggedIn.value = true;
-    currentRole.value = role;
-    userName.value = name;
-    userEmail.value = email;
-    userPhone.value = phone;
-    userAvatar.value = avatar;
-    userUid.value = uid;
   }
 }

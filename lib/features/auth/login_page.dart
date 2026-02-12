@@ -36,7 +36,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 10),
               // Header
               Center(
                 child: Column(
@@ -73,7 +73,7 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
 
               // Error Message
               if (_errorMessage != null) ...[
@@ -120,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                   fillColor: AppColors.backgroundLight,
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingL),
+              const SizedBox(height: 16),
 
               // Password Field
               Text('password'.tr, style: _labelStyle()),
@@ -175,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: AppTheme.spacingL),
+              const SizedBox(height: 20),
 
               // Login Button
               SizedBox(
@@ -214,62 +214,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Text('Tiếp tục với tư cách Khách', style: TextStyle(color: AppColors.textLight, fontSize: 14)),
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingL),
-
-              // Divider
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-                    child: Text('or_continue_with'.tr, style: Theme.of(context).textTheme.bodySmall),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spacingL),
-
-              // Social Login Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.g_mobiledata,
-                      label: 'Google',
-                      color: const Color(0xFFDB4437),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingM),
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.facebook,
-                      label: 'Facebook',
-                      color: const Color(0xFF1877F2),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: AppTheme.spacingM),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.phone_android,
-                      label: 'Zalo',
-                      color: const Color(0xFF0068FF),
-                    ),
-                  ),
-                  const SizedBox(width: AppTheme.spacingM),
-                  Expanded(
-                    child: _buildSocialButton(
-                      icon: Icons.chat_bubble,
-                      label: 'WeChat',
-                      color: const Color(0xFF07C160),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spacingXL),
 
               // Register Link
               Center(
@@ -290,27 +235,41 @@ class _LoginPageState extends State<LoginPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: AppTheme.spacingL),
+
+              // Divider
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+                    child: Text('or_continue_with'.tr, style: Theme.of(context).textTheme.bodySmall),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingL),
+
+              // Social Login Buttons
+              // Social Login Buttons - Compact
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildSocialIconBtn(Icons.g_mobiledata, const Color(0xFFDB4437)),
+                  const SizedBox(width: 20),
+                  _buildSocialIconBtn(Icons.facebook, const Color(0xFF1877F2)),
+                  const SizedBox(width: 20),
+                  _buildSocialIconBtn(Icons.phone_android, const Color(0xFF0068FF)), // Zalo
+                  const SizedBox(width: 20),
+                  _buildSocialIconBtn(Icons.chat_bubble, const Color(0xFF07C160)), // WeChat
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingXL),
+
+
 
               // Role hint (for demo)
-              const SizedBox(height: AppTheme.spacingM),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primaryBlue.withOpacity(0.15)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('🔑 Demo Login:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('• admin@demo.com → Quản trị viên', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
-                    Text('• ctv@demo.com → Cộng tác viên', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
-                    Text('• bất kỳ email → Khách hàng', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
-                  ],
-                ),
-              ),
+
             ],
           ),
         ),
@@ -371,21 +330,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildSocialButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return OutlinedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, color: color, size: 22),
-      label: Text(label, style: TextStyle(color: AppColors.textDark, fontSize: 13)),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        side: const BorderSide(color: AppColors.divider),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+  Widget _buildSocialIconBtn(IconData icon, Color color) {
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.divider),
+          color: Colors.white,
         ),
+        child: Icon(icon, color: color, size: 24),
       ),
     );
   }

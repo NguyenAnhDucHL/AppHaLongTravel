@@ -4,6 +4,7 @@ import { validatePagination } from '../middleware/validation';
 import { bookingService } from '../services/booking.service';
 import { authService } from '../services/auth.service';
 import { db, Collections } from '../config/firebase';
+import { seedDatabase } from '../seed/seed-data';
 import { BookingStatus, UserRole } from '../models/types';
 
 const router = Router();
@@ -173,6 +174,17 @@ router.delete('/users/:id', authenticate, requireRole('admin'), async (req: Requ
         res.json({ success: true, message: 'User deleted' });
     } catch (error: unknown) {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
+
+// Seed database (Admin only - or open for first run if needed, currently protected)
+// curl -X POST https://<region>-<project>.cloudfunctions.net/api/api/admin/seed -H "Authorization: Bearer <token>"
+router.post('/seed', async (req, res) => {
+    try {
+        const results = await seedDatabase(db);
+        res.json({ success: true, results });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Seed failed', details: error });
     }
 });
 

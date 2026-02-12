@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
@@ -10,6 +11,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services
+  await Firebase.initializeApp();
+
   final languageService = LanguageService();
   await languageService.init();
   Get.put(languageService);

@@ -267,14 +267,14 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     final authService = Get.find<AuthService>();
-    final success = await authService.register(
+    final error = await authService.register(
       name: name,
       email: email,
       password: password,
       phone: phone,
     );
 
-    if (success) {
+    if (error == null) {
       Get.snackbar(
         '🎉 Đăng ký thành công!',
         'Chào mừng $name đến với Quảng Ninh Travel',
@@ -285,7 +285,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       Get.offAllNamed(Routes.home);
     } else {
-      setState(() => _errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.');
+      setState(() => _errorMessage = error);
     }
   }
 

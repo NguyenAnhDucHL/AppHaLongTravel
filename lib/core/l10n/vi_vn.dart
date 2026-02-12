@@ -3,6 +3,10 @@ const Map<String, String> viVN = {
   // App
   'app_name': 'Du Lịch Quảng Ninh',
   'welcome_to': 'Chào mừng đến',
+  'success': 'Thành công',
+  'error': 'Lỗi',
+  'profile_updated': 'Cập nhật hồ sơ thành công',
+  'update_failed': 'Cập nhật hồ sơ thất bại',
 
   // Bottom Nav
   'nav_home': 'Trang chủ',
