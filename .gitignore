@@ -49,3 +49,4 @@ app.*.map.json
 **/secrets.dart
 *.env
 .env.*
+service-account.json
