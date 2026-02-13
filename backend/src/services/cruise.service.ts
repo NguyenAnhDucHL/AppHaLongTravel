@@ -19,6 +19,26 @@ export class CruiseService {
         if (!doc.exists) return null;
         return { id: doc.id, ...doc.data() } as Cruise;
     }
+
+    async create(data: Omit<Cruise, 'id' | 'createdAt'>): Promise<Cruise> {
+        const docRef = await this.col.add({
+            ...data,
+            createdAt: new Date(),
+        });
+        const doc = await docRef.get();
+        return { id: doc.id, ...doc.data() } as Cruise;
+    }
+
+    async update(id: string, data: Partial<Cruise>): Promise<void> {
+        await this.col.doc(id).update({
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.col.doc(id).delete();
+    }
 }
 
 export const cruiseService = new CruiseService();

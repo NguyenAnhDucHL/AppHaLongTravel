@@ -23,6 +23,26 @@ export class RestaurantService {
         if (!doc.exists) return null;
         return { id: doc.id, ...doc.data() } as Restaurant;
     }
+
+    async create(data: Omit<Restaurant, 'id' | 'createdAt'>): Promise<Restaurant> {
+        const docRef = await this.col.add({
+            ...data,
+            createdAt: new Date(),
+        });
+        const doc = await docRef.get();
+        return { id: doc.id, ...doc.data() } as Restaurant;
+    }
+
+    async update(id: string, data: Partial<Restaurant>): Promise<void> {
+        await this.col.doc(id).update({
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.col.doc(id).delete();
+    }
 }
 
 export const restaurantService = new RestaurantService();

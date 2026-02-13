@@ -53,5 +53,7 @@ exports.Collections = {
     NOTIFICATIONS: 'notifications',
     PAYMENTS: 'payments',
     PAYMENT_METHODS: 'payment_methods',
+    DEALS: 'deals',
+    DESTINATIONS: 'destinations',
 };
 //# sourceMappingURL=firebase.js.map

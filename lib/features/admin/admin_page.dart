@@ -8,12 +8,39 @@ import 'package:quang_ninh_travel/features/admin/manage_tours_page.dart';
 import 'package:quang_ninh_travel/features/admin/manage_restaurants_page.dart';
 import 'package:quang_ninh_travel/features/admin/manage_reviews_page.dart';
 import 'package:quang_ninh_travel/features/admin/manage_deals_page.dart';
+import 'package:quang_ninh_travel/features/admin/manage_transport_page.dart';
+import 'package:quang_ninh_travel/core/services/admin_service.dart';
 import 'package:quang_ninh_travel/core/services/auth_service.dart';
 import 'package:quang_ninh_travel/core/services/seed_service.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 
-class AdminPage extends StatelessWidget {
+class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
+
+  @override
+  State<AdminPage> createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  final AdminService _adminService = Get.find<AdminService>();
+  Map<String, dynamic> _stats = {};
+  bool _isLoadingStats = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    setState(() => _isLoadingStats = true);
+    try {
+      final s = await _adminService.getStats();
+      setState(() => _stats = s);
+    } finally {
+      setState(() => _isLoadingStats = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +82,9 @@ class AdminPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ===== Stats Cards =====
-                  _buildStatsRow(context),
+                  _isLoadingStats 
+                    ? const Center(child: LinearProgressIndicator()) 
+                    : _buildStatsRow(context),
                   const SizedBox(height: 24),
 
                   // ===== Quick Actions =====
@@ -93,10 +122,10 @@ class AdminPage extends StatelessWidget {
   // ===== STATS ROW =====
   Widget _buildStatsRow(BuildContext context) {
     final stats = [
-      _StatData('Đặt phòng', '1,284', Icons.calendar_today, const Color(0xFF2196F3), '+12%'),
-      _StatData('Doanh thu', '₫2.4B', Icons.trending_up, const Color(0xFF4CAF50), '+18%'),
-      _StatData('Người dùng', '3,421', Icons.people, const Color(0xFFFF9800), '+8%'),
-      _StatData('Đánh giá', '856', Icons.star, const Color(0xFFE91E63), '+24%'),
+      _StatData('Dịch vụ', ((_stats['hotels'] ?? 0) + (_stats['cruises'] ?? 0) + (_stats['tours'] ?? 0) + (_stats['restaurants'] ?? 0)).toString(), Icons.layers, const Color(0xFF2196F3), '+5%'),
+      _StatData('Doanh thu', '₫${_stats['totalRevenue'] ?? "0"}', Icons.trending_up, const Color(0xFF4CAF50), '+12%'),
+      _StatData('Người dùng', (_stats['users'] ?? 0).toString(), Icons.people, const Color(0xFFFF9800), '+8%'),
+      _StatData('Reviews', (_stats['reviews'] ?? 0).toString(), Icons.star, const Color(0xFFE91E63), '+15%'),
     ];
 
     return SizedBox(
@@ -201,6 +230,7 @@ class AdminPage extends StatelessWidget {
       _MenuItem(Icons.sailing, 'Du thuyền', '3 đăng ký', Colors.cyan, const ManageCruisesPage()),
       _MenuItem(Icons.terrain, 'Tour du lịch', '4 tour', AppColors.accentOrange, const ManageToursPage()),
       _MenuItem(Icons.restaurant, 'Nhà hàng', '3 đăng ký', AppColors.accentGold, const ManageRestaurantsPage()),
+      _MenuItem(Icons.directions_bus, 'Phương tiện', '4 phương tiện', Colors.indigo, const ManageTransportPage()),
       _MenuItem(Icons.rate_review, 'Đánh giá', '2 chờ duyệt', const Color(0xFF9C27B0), const ManageReviewsPage()),
       _MenuItem(Icons.local_offer, 'Ưu đãi & Điểm đến', '3 đang chạy', AppColors.accentCoral, const ManageDealsPage()),
     ];

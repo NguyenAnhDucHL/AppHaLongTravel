@@ -21,6 +21,23 @@ class TransportService {
         const vehicle = snapshot.docs[0].data();
         return { price: Math.round(vehicle.pricePerKm * distanceKm), currency: 'VND' };
     }
+    async create(data) {
+        const docRef = await this.col.add({
+            ...data,
+            createdAt: new Date(),
+        });
+        const doc = await docRef.get();
+        return { id: doc.id, ...doc.data() };
+    }
+    async update(id, data) {
+        await this.col.doc(id).update({
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+    async delete(id) {
+        await this.col.doc(id).delete();
+    }
 }
 exports.TransportService = TransportService;
 exports.transportService = new TransportService();

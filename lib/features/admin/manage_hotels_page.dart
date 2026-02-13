@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:get/get.dart';
+import 'package:quang_ninh_travel/core/services/hotel_service.dart';
+import 'package:quang_ninh_travel/core/utils/storage_utils.dart';
+import 'dart:io';
 
 class ManageHotelsPage extends StatefulWidget {
   const ManageHotelsPage({super.key});
@@ -10,61 +14,30 @@ class ManageHotelsPage extends StatefulWidget {
 }
 
 class _ManageHotelsPageState extends State<ManageHotelsPage> {
-  final List<Map<String, dynamic>> _hotels = [
-    {
-      'name': 'Paradise Suites Hotel',
-      'location': 'Tuần Châu, Hạ Long',
-      'price': 2500000,
-      'rating': 4.8,
-      'status': 'active',
-      'rooms': 45,
-      'category': 'luxury',
-      'images': 3,
-    },
-    {
-      'name': 'Novotel Ha Long Bay',
-      'location': 'Bãi Cháy, Hạ Long',
-      'price': 1800000,
-      'rating': 4.6,
-      'status': 'active',
-      'rooms': 120,
-      'category': 'luxury',
-      'images': 5,
-    },
-    {
-      'name': 'Wyndham Legend Halong',
-      'location': 'Bãi Cháy, Hạ Long',
-      'price': 3200000,
-      'rating': 4.7,
-      'status': 'active',
-      'rooms': 80,
-      'category': 'resort',
-      'images': 4,
-    },
-    {
-      'name': 'FLC Grand Hotel',
-      'location': 'Hùng Thắng, Hạ Long',
-      'price': 1500000,
-      'rating': 4.4,
-      'status': 'inactive',
-      'rooms': 200,
-      'category': 'resort',
-      'images': 2,
-    },
-    {
-      'name': 'Mường Thanh Luxury',
-      'location': 'Trung tâm Hạ Long',
-      'price': 1200000,
-      'rating': 4.3,
-      'status': 'active',
-      'rooms': 150,
-      'category': 'business',
-      'images': 3,
-    },
-  ];
-
+  final HotelService _hotelService = Get.find<HotelService>();
+  
+  List<Map<String, dynamic>> _hotels = [];
+  bool _isLoading = false;
   String _searchQuery = '';
   String _filterStatus = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHotels();
+  }
+
+  Future<void> _fetchHotels() async {
+    setState(() => _isLoading = true);
+    try {
+      final hotels = await _hotelService.listHotels();
+      setState(() => _hotels = hotels);
+    } catch (e) {
+      _showErrorSnackbar('Lỗi khi tải danh sách khách sạn');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,11 +103,15 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
           ),
           // Hotel List
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(AppTheme.spacingM),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) => _buildHotelCard(context, filtered[index]),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
+                    ? const Center(child: Text('Không tìm thấy khách sạn nào'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) => _buildHotelCard(context, filtered[index]),
+                      ),
           ),
         ],
       ),
@@ -175,7 +152,15 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
             ),
             child: Stack(
               children: [
-                const Center(child: Icon(Icons.hotel, size: 48, color: AppColors.primaryBlue)),
+                hotel['images'] != null && (hotel['images'] as List).isNotEmpty
+                    ? Image.network(
+                        hotel['images'][0],
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.hotel, size: 48, color: AppColors.primaryBlue)),
+                      )
+                    : const Center(child: Icon(Icons.hotel, size: 48, color: AppColors.primaryBlue)),
                 Positioned(
                   top: 8, right: 8,
                   child: Container(
@@ -203,7 +188,7 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
                       children: [
                         const Icon(Icons.photo, size: 14, color: Colors.white),
                         const SizedBox(width: 4),
-                        Text('${hotel['images']} ảnh', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                        Text('${(hotel['images'] as List?)?.length ?? 0} ảnh', style: const TextStyle(color: Colors.white, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -290,7 +275,7 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      onPressed: () => _showDeleteConfirm(context, hotel['name']),
+                      onPressed: () => _showDeleteConfirm(context, hotel),
                       icon: const Icon(Icons.delete_outline, color: AppColors.error),
                       tooltip: 'Xóa',
                     ),
@@ -341,141 +326,196 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          height: MediaQuery.of(ctx).size.height * 0.9,
-          decoration: const BoxDecoration(
-            color: AppColors.backgroundWhite,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
-              ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Text(
-                      isEdit ? 'Sửa Khách sạn' : 'Thêm Khách sạn',
-                      style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-                  ],
+        builder: (ctx, setSheetState) {
+          bool isSubmitting = false;
+          File? pickedFile;
+
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.9,
+            decoration: const BoxDecoration(
+              color: AppColors.backgroundWhite,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
                 ),
-              ),
-              const Divider(height: 1),
-              // Form
-              Expanded(
-                child: SingleChildScrollView(
+                // Header
+                Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      // Image upload area
-                      GestureDetector(
-                        onTap: () {},
-                        child: Container(
-                          height: 150,
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3), style: BorderStyle.solid),
-                          ),
-                          child: const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.cloud_upload_outlined, size: 40, color: AppColors.primaryBlue),
-                                SizedBox(height: 8),
-                                Text('Nhấn để tải ảnh lên', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
-                                Text('PNG, JPG (tối đa 5MB)', style: TextStyle(color: AppColors.textLight, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ),
+                      Text(
+                        isEdit ? 'Sửa Khách sạn' : 'Thêm Khách sạn',
+                        style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 20),
-                      _buildTextField('Tên khách sạn *', nameCtrl, Icons.hotel),
-                      const SizedBox(height: 16),
-                      _buildTextField('Địa chỉ *', locationCtrl, Icons.location_on),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(child: _buildTextField('Giá/đêm (₫) *', priceCtrl, Icons.attach_money, isNumber: true)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildTextField('Số phòng', roomsCtrl, Icons.bed, isNumber: true)),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Hạng khách sạn', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8, runSpacing: 8,
-                        children: ['luxury', 'resort', 'business', 'budget'].map((c) {
-                          final selected = category == c;
-                          final labels = {'luxury': '⭐ Sang trọng', 'resort': '🏖 Resort', 'business': '💼 Thương mại', 'budget': '💰 Bình dân'};
-                          return ChoiceChip(
-                            label: Text(labels[c]!, style: TextStyle(color: selected ? Colors.white : AppColors.textDark, fontSize: 13)),
-                            selected: selected,
-                            onSelected: (_) => setSheetState(() => category = c),
-                            selectedColor: AppColors.primaryBlue,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Tiện ích', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8, runSpacing: 8,
-                        children: amenities.map((a) {
-                          final selected = selectedAmenities.contains(a);
-                          return FilterChip(
-                            label: Text(a, style: TextStyle(color: selected ? Colors.white : AppColors.textDark, fontSize: 12)),
-                            selected: selected,
-                            onSelected: (s) => setSheetState(() => s ? selectedAmenities.add(a) : selectedAmenities.remove(a)),
-                            selectedColor: AppColors.primaryBlue,
-                            checkmarkColor: Colors.white,
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextField(
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText: 'Nhập mô tả chi tiết...',
-                          filled: true,
-                          fillColor: AppColors.backgroundLight,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity, height: 50,
-                        child: ElevatedButton(
-                          onPressed: () { Navigator.pop(ctx); _showSuccessSnackbar(isEdit ? 'Đã cập nhật khách sạn' : 'Đã thêm khách sạn mới'); },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryBlue,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: Text(isEdit ? 'Lưu thay đổi' : 'Thêm khách sạn', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                      const Spacer(),
+                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+                const Divider(height: 1),
+                // Form
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Image upload area
+                        GestureDetector(
+                          onTap: () async {
+                            final file = await StorageUtils.pickImage();
+                            if (file != null) {
+                              setSheetState(() => pickedFile = file);
+                            }
+                          },
+                          child: Container(
+                            height: 150,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(16),
+                              image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
+                              border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3), style: BorderStyle.solid),
+                            ),
+                            child: pickedFile == null ? const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.cloud_upload_outlined, size: 40, color: AppColors.primaryBlue),
+                                  SizedBox(height: 8),
+                                  Text('Nhấn để tải ảnh lên', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
+                                  Text('PNG, JPG (tối đa 5MB)', style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+                                ],
+                              ),
+                            ) : null,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildTextField('Tên khách sạn *', nameCtrl, Icons.hotel),
+                        const SizedBox(height: 16),
+                        _buildTextField('Địa chỉ *', locationCtrl, Icons.location_on),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _buildTextField('Giá/đêm (₫) *', priceCtrl, Icons.attach_money, isNumber: true)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _buildTextField('Số phòng', roomsCtrl, Icons.bed, isNumber: true)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Hạng khách sạn', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: ['luxury', 'resort', 'business', 'budget'].map((c) {
+                            final selected = category == c;
+                            final labels = {'luxury': '⭐ Sang trọng', 'resort': '🏖 Resort', 'business': '💼 Thương mại', 'budget': '💰 Bình dân'};
+                            return ChoiceChip(
+                              label: Text(labels[c]!, style: TextStyle(color: selected ? Colors.white : AppColors.textDark, fontSize: 13)),
+                              selected: selected,
+                              onSelected: (_) => setSheetState(() => category = c),
+                              selectedColor: AppColors.primaryBlue,
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Tiện ích', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8, runSpacing: 8,
+                          children: amenities.map((a) {
+                            final selected = selectedAmenities.contains(a);
+                            return FilterChip(
+                              label: Text(a, style: TextStyle(color: selected ? Colors.white : AppColors.textDark, fontSize: 12)),
+                              selected: selected,
+                              onSelected: (s) => setSheetState(() => s ? selectedAmenities.add(a) : selectedAmenities.remove(a)),
+                              selectedColor: AppColors.primaryBlue,
+                              checkmarkColor: Colors.white,
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                            hintText: 'Nhập mô tả chi tiết...',
+                            filled: true,
+                            fillColor: AppColors.backgroundLight,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity, height: 50,
+                          child: ElevatedButton(
+                            onPressed: isSubmitting ? null : () async {
+                              if (nameCtrl.text.isEmpty || locationCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
+                                _showErrorSnackbar('Vui lòng nhập đầy đủ các trường bắt buộc');
+                                return;
+                              }
+
+                              setSheetState(() => isSubmitting = true);
+                              try {
+                                String? imageUrl;
+                                if (pickedFile != null) {
+                                  imageUrl = await StorageUtils.uploadFile(pickedFile!, 'hotels');
+                                }
+
+                                final hotelData = {
+                                  'name': nameCtrl.text,
+                                  'location': locationCtrl.text,
+                                  'pricePerNight': int.parse(priceCtrl.text),
+                                  'roomsCount': int.parse(roomsCtrl.text),
+                                  'category': category,
+                                  'amenities': selectedAmenities.toList(),
+                                  if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': hotel['images'],
+                                  'status': 'active',
+                                  'rating': isEdit ? hotel['rating'] : 5.0,
+                                };
+
+                                bool success;
+                                if (isEdit) {
+                                  success = await _hotelService.updateHotel(hotel['id'], hotelData);
+                                } else {
+                                  success = await _hotelService.createHotel(hotelData);
+                                }
+
+                                if (success) {
+                                  Navigator.pop(ctx);
+                                  _fetchHotels();
+                                  _showSuccessSnackbar(isEdit ? 'Đã cập nhật khách sạn' : 'Đã thêm khách sạn mới');
+                                } else {
+                                  _showErrorSnackbar('Lỗi khi lưu khách sạn');
+                                }
+                              } finally {
+                                if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryBlue,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: isSubmitting
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : Text(isEdit ? 'Lưu thay đổi' : 'Thêm khách sạn', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -588,21 +628,41 @@ class _ManageHotelsPageState extends State<ManageHotelsPage> {
     );
   }
 
-  void _showDeleteConfirm(BuildContext context, String name) {
+  void _showDeleteConfirm(BuildContext context, Map<String, dynamic> hotel) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa "$name"?'),
+        content: Text('Bạn có chắc muốn xóa "${hotel['name']}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
           ElevatedButton(
-            onPressed: () { Navigator.pop(ctx); _showSuccessSnackbar('Đã xóa $name'); },
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await _hotelService.deleteHotel(hotel['id']);
+              if (success) {
+                _fetchHotels();
+                _showSuccessSnackbar('Đã xóa ${hotel['name']}');
+              } else {
+                _showErrorSnackbar('Lỗi khi xóa khách sạn');
+              }
+            },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Xóa', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: [const Icon(Icons.error_outline, color: Colors.white), const SizedBox(width: 8), Text(msg)]),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

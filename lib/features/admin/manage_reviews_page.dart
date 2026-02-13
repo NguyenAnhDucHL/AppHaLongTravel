@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:get/get.dart';
+import 'package:quang_ninh_travel/core/services/admin_service.dart';
 
 class ManageReviewsPage extends StatefulWidget {
   const ManageReviewsPage({super.key});
@@ -10,19 +12,26 @@ class ManageReviewsPage extends StatefulWidget {
 
 class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-  final _reviews = [
-    {'user': 'Nguyễn Văn A', 'item': 'Paradise Suites Hotel', 'type': 'hotel', 'rating': 5, 'text': 'Khách sạn tuyệt vời, view đẹp, dịch vụ tốt!', 'date': '10/02/2026', 'status': 'approved', 'photos': 2},
-    {'user': 'Trần Thị B', 'item': 'Ambassador Cruise', 'type': 'cruise', 'rating': 4, 'text': 'Du thuyền sang trọng, đồ ăn ngon. Nhân viên nhiệt tình.', 'date': '09/02/2026', 'status': 'pending', 'photos': 3},
-    {'user': '张三', 'item': 'Vịnh Hạ Long Full Day', 'type': 'tour', 'rating': 5, 'text': 'Beautiful scenery, amazing experience!', 'date': '08/02/2026', 'status': 'approved', 'photos': 5},
-    {'user': 'Lê Minh Châu', 'item': 'Phương Nam Restaurant', 'type': 'restaurant', 'rating': 3, 'text': 'Đồ ăn tạm được, giá hơi cao.', 'date': '07/02/2026', 'status': 'pending', 'photos': 1},
-    {'user': 'Phạm Đức', 'item': 'Novotel Ha Long', 'type': 'hotel', 'rating': 2, 'text': 'Phòng không sạch, nhân viên thái độ kém.', 'date': '06/02/2026', 'status': 'flagged', 'photos': 0},
-    {'user': 'Mai Hương', 'item': 'Stellar of the Seas', 'type': 'cruise', 'rating': 5, 'text': 'Trải nghiệm hoàn hảo! Sẽ quay lại!', 'date': '05/02/2026', 'status': 'approved', 'photos': 4},
-  ];
+  final AdminService _adminService = Get.find<AdminService>();
+
+  List<Map<String, dynamic>> _reviews = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 4, vsync: this);
+    _fetchReviews();
+  }
+
+  Future<void> _fetchReviews() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await _adminService.listReviews();
+      setState(() => _reviews = List<Map<String, dynamic>>.from(res['data']));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -55,13 +64,14 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
           _buildList(_reviews),
           _buildList(_reviews.where((r) => r['status'] == 'pending').toList()),
           _buildList(_reviews.where((r) => r['status'] == 'approved').toList()),
-          _buildList(_reviews.where((r) => r['status'] == 'flagged').toList()),
+          _buildList(_reviews.where((r) => (r['status'] == 'flagged' || r['status'] == 'rejected')).toList()),
         ],
       ),
     );
   }
 
   Widget _buildList(List<Map<String, dynamic>> reviews) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
     if (reviews.isEmpty) {
       return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.reviews, size: 48, color: AppColors.textLight),
@@ -69,16 +79,19 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
         Text('Không có đánh giá', style: TextStyle(color: AppColors.textLight)),
       ]));
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
-      itemCount: reviews.length,
-      itemBuilder: (ctx, i) => _buildReviewCard(ctx, reviews[i]),
+    return RefreshIndicator(
+      onRefresh: () => _fetchReviews(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        itemCount: reviews.length,
+        itemBuilder: (ctx, i) => _buildReviewCard(ctx, reviews[i]),
+      ),
     );
   }
 
   Widget _buildReviewCard(BuildContext context, Map<String, dynamic> review) {
-    final statusColors = {'approved': AppColors.success, 'pending': AppColors.accentOrange, 'flagged': AppColors.error};
-    final statusLabels = {'approved': 'Đã duyệt', 'pending': 'Chờ duyệt', 'flagged': 'Bị báo cáo'};
+    final statusColors = {'approved': AppColors.success, 'pending': AppColors.accentOrange, 'flagged': AppColors.error, 'rejected': AppColors.error};
+    final statusLabels = {'approved': 'Đã duyệt', 'pending': 'Chờ duyệt', 'flagged': 'Báo cáo', 'rejected': 'Từ chối'};
     final typeIcons = {'hotel': Icons.hotel, 'cruise': Icons.sailing, 'tour': Icons.terrain, 'restaurant': Icons.restaurant};
     final statusColor = statusColors[review['status']] ?? AppColors.textLight;
 
@@ -97,11 +110,11 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(review['user'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text(review['userName'] ?? 'User ${review['userId']?.substring(0,4)}', style: const TextStyle(fontWeight: FontWeight.bold)),
               Row(children: [
-                Icon(typeIcons[review['type']], size: 13, color: AppColors.textLight),
+                Icon(typeIcons[review['itemType']] ?? Icons.reviews, size: 13, color: AppColors.textLight),
                 const SizedBox(width: 4),
-                Expanded(child: Text(review['item'] as String, style: const TextStyle(fontSize: 12, color: AppColors.textLight), overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(review['itemType']?.toUpperCase() ?? '', style: const TextStyle(fontSize: 12, color: AppColors.textLight), overflow: TextOverflow.ellipsis)),
               ]),
             ])),
             Container(
@@ -118,17 +131,17 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
               size: 18, color: AppColors.accentGold,
             )),
             const Spacer(),
-            Text(review['date'] as String, style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
+            Text(review['createdAt']?.toString().split('T')[0] ?? 'N/A', style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
           ]),
           const SizedBox(height: 8),
           // Review text
           Text(review['text'] as String, style: const TextStyle(fontSize: 14, height: 1.4)),
-          if ((review['photos'] as int) > 0) ...[
+          if (review['photos'] != null && (review['photos'] as List).isNotEmpty) ...[
             const SizedBox(height: 8),
             Row(children: [
               const Icon(Icons.photo, size: 14, color: AppColors.textLight),
               const SizedBox(width: 4),
-              Text('${review['photos']} ảnh đính kèm', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+              Text('${(review['photos'] as List).length} ảnh đính kèm', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
             ]),
           ],
           const SizedBox(height: 12),
@@ -137,20 +150,49 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
           // Actions
           Row(children: [
             if (review['status'] == 'pending') ...[
-              Expanded(child: _actionBtn(Icons.check, 'Duyệt', AppColors.success, () {})),
+              Expanded(child: _actionBtn(Icons.check, 'Duyệt', AppColors.success, () => _updateStatus(review, 'approved'))),
               const SizedBox(width: 8),
+              Expanded(child: _actionBtn(Icons.close, 'Từ chối', AppColors.error, () => _updateStatus(review, 'rejected'))),
             ],
-            if (review['status'] != 'flagged')
-              Expanded(child: _actionBtn(Icons.flag, 'Báo cáo', AppColors.accentOrange, () {})),
-            if (review['status'] == 'pending' || review['status'] != 'flagged')
+            if (review['status'] == 'approved') ...[
+              Expanded(child: _actionBtn(Icons.reply, 'Phản hồi', AppColors.primaryBlue, () => _showReplyDialog(context, review))),
               const SizedBox(width: 8),
-            Expanded(child: _actionBtn(Icons.reply, 'Phản hồi', AppColors.primaryBlue, () => _showReplyDialog(context, review))),
+              Expanded(child: _actionBtn(Icons.flag_outlined, 'Báo cáo', AppColors.accentOrange, () => _updateStatus(review, 'flagged'))),
+            ],
             const SizedBox(width: 8),
-            _iconBtn(Icons.delete_outline, AppColors.error, () {}),
+            _iconBtn(Icons.delete_outline, AppColors.error, () => _confirmDelete(context, review)),
           ]),
         ]),
       ),
     );
+  }
+
+  void _updateStatus(Map<String, dynamic> review, String status) async {
+    final success = await _adminService.updateReviewStatus(review['id'], status);
+    if (success) {
+      _fetchReviews();
+      Get.snackbar('✅ Thành công', 'Đã cập nhật trạng thái đánh giá', snackPosition: SnackPosition.TOP);
+    }
+  }
+
+  void _confirmDelete(BuildContext context, Map<String, dynamic> review) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Xác nhận xóa'),
+      content: const Text('Xóa đánh giá này?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+        ElevatedButton(
+          onPressed: () async {
+            if (await _adminService.deleteReview(review['id'])) {
+              _fetchReviews();
+              Navigator.pop(ctx);
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
   }
 
   Widget _actionBtn(IconData icon, String label, Color color, VoidCallback onTap) {
@@ -178,7 +220,7 @@ class _ManageReviewsPageState extends State<ManageReviewsPage> with SingleTicker
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Phản hồi đánh giá của ${review['user']}'),
+        title: Text('Phản hồi cho ${review['userName'] ?? "User"} '),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             padding: const EdgeInsets.all(10),

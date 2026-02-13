@@ -36,6 +36,23 @@ class HotelService {
             .get();
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
+    async create(data) {
+        const docRef = await this.col.add({
+            ...data,
+            createdAt: new Date(),
+        });
+        const doc = await docRef.get();
+        return { id: doc.id, ...doc.data() };
+    }
+    async update(id, data) {
+        await this.col.doc(id).update({
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+    async delete(id) {
+        await this.col.doc(id).delete();
+    }
 }
 exports.HotelService = HotelService;
 exports.hotelService = new HotelService();

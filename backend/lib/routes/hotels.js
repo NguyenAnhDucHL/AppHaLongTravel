@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const auth_1 = require("../middleware/auth");
 const validation_1 = require("../middleware/validation");
 const hotel_service_1 = require("../services/hotel.service");
 const router = (0, express_1.Router)();
@@ -50,6 +51,39 @@ router.get('/:id', async (req, res) => {
     }
     catch (error) {
         const msg = error instanceof Error ? error.message : 'Failed to fetch hotel';
+        res.status(500).json({ success: false, error: msg });
+    }
+});
+// POST /api/hotels — Admin only
+router.post('/', auth_1.authenticate, (0, auth_1.requireRole)('admin'), async (req, res) => {
+    try {
+        const hotel = await hotel_service_1.hotelService.create(req.body);
+        res.status(201).json({ success: true, data: hotel, message: 'Hotel created' });
+    }
+    catch (error) {
+        const msg = error instanceof Error ? error.message : 'Failed to create hotel';
+        res.status(500).json({ success: false, error: msg });
+    }
+});
+// PUT /api/hotels/:id — Admin only
+router.put('/:id', auth_1.authenticate, (0, auth_1.requireRole)('admin'), async (req, res) => {
+    try {
+        await hotel_service_1.hotelService.update(req.params.id, req.body);
+        res.json({ success: true, message: 'Hotel updated' });
+    }
+    catch (error) {
+        const msg = error instanceof Error ? error.message : 'Failed to update hotel';
+        res.status(500).json({ success: false, error: msg });
+    }
+});
+// DELETE /api/hotels/:id — Admin only
+router.delete('/:id', auth_1.authenticate, (0, auth_1.requireRole)('admin'), async (req, res) => {
+    try {
+        await hotel_service_1.hotelService.delete(req.params.id);
+        res.json({ success: true, message: 'Hotel deleted' });
+    }
+    catch (error) {
+        const msg = error instanceof Error ? error.message : 'Failed to delete hotel';
         res.status(500).json({ success: false, error: msg });
     }
 });

@@ -47,6 +47,23 @@ class ReviewService {
             .get();
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
+    async listAll(page = 1, limit = 20) {
+        const countSnap = await this.col.count().get();
+        const total = countSnap.data().count;
+        const snapshot = await this.col
+            .orderBy('createdAt', 'desc')
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .get();
+        const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        return { items, total };
+    }
+    async updateStatus(id, status) {
+        await this.col.doc(id).update({ status });
+    }
+    async delete(id) {
+        await this.col.doc(id).delete();
+    }
     getItemCollection(itemType) {
         const map = {
             hotel: firebase_1.Collections.HOTELS,

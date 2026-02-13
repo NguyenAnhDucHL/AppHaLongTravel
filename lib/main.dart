@@ -6,6 +6,13 @@ import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 import 'package:quang_ninh_travel/core/l10n/app_translations.dart';
 import 'package:quang_ninh_travel/core/services/language_service.dart';
 import 'package:quang_ninh_travel/core/services/auth_service.dart';
+import 'package:quang_ninh_travel/core/services/api_service.dart';
+import 'package:quang_ninh_travel/core/services/hotel_service.dart';
+import 'package:quang_ninh_travel/core/services/cruise_service.dart';
+import 'package:quang_ninh_travel/core/services/tour_service.dart';
+import 'package:quang_ninh_travel/core/services/restaurant_service.dart';
+import 'package:quang_ninh_travel/core/services/transport_service.dart';
+import 'package:quang_ninh_travel/core/services/admin_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +27,18 @@ void main() async {
   final authService = AuthService();
   await authService.init();
   Get.put(authService);
+
+  // Initialize API and other services
+  final apiService = ApiService();
+  await apiService.init();
+  Get.put(apiService);
+
+  Get.put(HotelService());
+  Get.put(CruiseService());
+  Get.put(TourService());
+  Get.put(RestaurantService());
+  Get.put(TransportService());
+  Get.put(AdminService());
   
   runApp(const QuangNinhTravelApp());
 }

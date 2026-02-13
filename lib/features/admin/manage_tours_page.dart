@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:get/get.dart';
+import 'package:quang_ninh_travel/core/services/tour_service.dart';
+import 'package:quang_ninh_travel/core/utils/storage_utils.dart';
+import 'dart:io';
 
 class ManageToursPage extends StatefulWidget {
   const ManageToursPage({super.key});
@@ -9,12 +13,28 @@ class ManageToursPage extends StatefulWidget {
 }
 
 class _ManageToursPageState extends State<ManageToursPage> {
-  final _tours = [
-    {'name': 'Vịnh Hạ Long Full Day', 'duration': '8 tiếng', 'difficulty': 'easy', 'price': 800000, 'rating': 4.6, 'groupSize': 20, 'bookings': 156, 'status': 'active'},
-    {'name': 'Bái Tử Long Kayaking', 'duration': '6 tiếng', 'difficulty': 'moderate', 'price': 1200000, 'rating': 4.8, 'groupSize': 10, 'bookings': 89, 'status': 'active'},
-    {'name': 'Yên Tử Mountain Trek', 'duration': '1 ngày', 'difficulty': 'hard', 'price': 600000, 'rating': 4.5, 'groupSize': 15, 'bookings': 234, 'status': 'active'},
-    {'name': 'Đảo Cô Tô Adventure', 'duration': '2N1Đ', 'difficulty': 'moderate', 'price': 2500000, 'rating': 4.7, 'groupSize': 12, 'bookings': 67, 'status': 'inactive'},
-  ];
+  final TourService _tourService = Get.find<TourService>();
+  
+  List<Map<String, dynamic>> _tours = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTours();
+  }
+
+  Future<void> _fetchTours() async {
+    setState(() => _isLoading = true);
+    try {
+      final tours = await _tourService.listTours();
+      setState(() => _tours = tours);
+    } catch (e) {
+      _showErrorSnackbar('Lỗi khi tải danh sách tour');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +46,15 @@ class _ManageToursPageState extends State<ManageToursPage> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Tạo Tour', style: TextStyle(color: Colors.white)),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(AppTheme.spacingM),
-        itemCount: _tours.length,
-        itemBuilder: (ctx, i) => _buildTourCard(ctx, _tours[i]),
-      ),
+      body: _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _tours.isEmpty
+          ? const Center(child: Text('Không có dữ liệu tour'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              itemCount: _tours.length,
+              itemBuilder: (ctx, i) => _buildTourCard(ctx, _tours[i]),
+            ),
     );
   }
 
@@ -80,7 +104,7 @@ class _ManageToursPageState extends State<ManageToursPage> {
                   decoration: BoxDecoration(color: AppColors.accentGold.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.star, size: 14, color: AppColors.accentGold), const SizedBox(width: 2),
-                    Text('${tour['rating']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('${tour['rating'] ?? 5.0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ]),
                 ),
                 const SizedBox(height: 4),
@@ -95,11 +119,9 @@ class _ManageToursPageState extends State<ManageToursPage> {
               const Spacer(),
               _iconBtn(Icons.edit, AppColors.primaryBlue, () => _showTourForm(context, tour: tour)),
               const SizedBox(width: 8),
-              _iconBtn(Icons.schedule, AppColors.accentOrange, () => _showScheduleEditor(context, tour['name'] as String)),
+              _iconBtn(Icons.schedule, AppColors.accentOrange, () => _showScheduleEditor(context, tour)),
               const SizedBox(width: 8),
-              _iconBtn(Icons.photo_library, Colors.purple, () {}),
-              const SizedBox(width: 8),
-              _iconBtn(Icons.delete_outline, AppColors.error, () {}),
+              _iconBtn(Icons.delete_outline, AppColors.error, () => _showDeleteConfirm(context, tour)),
             ]),
           ],
         ),
@@ -123,82 +145,139 @@ class _ManageToursPageState extends State<ManageToursPage> {
 
   void _showTourForm(BuildContext context, {Map<String, dynamic>? tour}) {
     final isEdit = tour != null;
+    final nameCtrl = TextEditingController(text: isEdit ? tour['name'] : '');
+    final priceCtrl = TextEditingController(text: isEdit ? tour['price'].toString() : '');
+    final groupSizeCtrl = TextEditingController(text: isEdit ? tour['groupSize'].toString() : '');
+    final durationCtrl = TextEditingController(text: isEdit ? tour['duration'] : '');
+    String difficulty = isEdit ? tour['difficulty'] : 'moderate';
+
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(ctx).size.height * 0.9,
-        decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(children: [
-          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-          Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text(isEdit ? 'Sửa Tour' : 'Tạo Tour mới', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-          ])),
-          const Divider(height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    height: 130, decoration: BoxDecoration(color: AppColors.accentOrange.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.accentOrange.withOpacity(0.3))),
-                    child: const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.add_photo_alternate, size: 36, color: AppColors.accentOrange),
-                      SizedBox(height: 6), Text('Tải ảnh tour', style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w500)),
-                    ])),
-                  ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          bool isSubmitting = false;
+          File? pickedFile;
+
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.9,
+            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: Column(children: [
+              Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+                Text(isEdit ? 'Sửa Tour' : 'Tạo Tour mới', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+              ])),
+              const Divider(height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final file = await StorageUtils.pickImage();
+                        if (file != null) setSheetState(() => pickedFile = file);
+                      },
+                      child: Container(
+                        height: 130, decoration: BoxDecoration(
+                          color: AppColors.accentOrange.withOpacity(0.05), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+                          image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
+                        ),
+                        child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.add_photo_alternate, size: 36, color: AppColors.accentOrange),
+                          SizedBox(height: 6), Text('Tải ảnh tour', style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w500)),
+                        ])) : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _field('Tên tour *', Icons.tour, nameCtrl),
+                    const SizedBox(height: 14),
+                    Row(children: [
+                      Expanded(child: _field('Giá/người (₫)', Icons.attach_money, priceCtrl, isNumber: true)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _field('Nhóm tối đa', Icons.group, groupSizeCtrl, isNumber: true)),
+                    ]),
+                    const SizedBox(height: 14),
+                    _field('Thời lượng (vd: 8 tiếng, 2N1Đ)', Icons.schedule, durationCtrl),
+                    const SizedBox(height: 14),
+                    const Text('Độ khó', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, children: [
+                      ChoiceChip(label: const Text('🟢 Dễ'), selected: difficulty == 'easy', onSelected: (s) { if(s) setSheetState(() => difficulty = 'easy'); }),
+                      ChoiceChip(label: const Text('🟡 Vừa'), selected: difficulty == 'moderate', onSelected: (s) { if(s) setSheetState(() => difficulty = 'moderate'); }, selectedColor: AppColors.accentOrange),
+                      ChoiceChip(label: const Text('🔴 Khó'), selected: difficulty == 'hard', onSelected: (s) { if(s) setSheetState(() => difficulty = 'hard'); }, selectedColor: AppColors.error),
+                    ]),
+                    const SizedBox(height: 14),
+                    const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+                    const SizedBox(height: 24),
+                    SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+                      onPressed: isSubmitting ? null : () async {
+                        if (nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
+                          _showErrorSnackbar('Vui lòng nhập đầy đủ thông tin');
+                          return;
+                        }
+                        setSheetState(() => isSubmitting = true);
+                        try {
+                          String? imageUrl;
+                          if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'tours');
+
+                          final data = {
+                            'name': nameCtrl.text,
+                            'price': int.tryParse(priceCtrl.text) ?? 0,
+                            'groupSize': int.tryParse(groupSizeCtrl.text) ?? 15,
+                            'duration': durationCtrl.text,
+                            'difficulty': difficulty,
+                            'status': 'active',
+                            'rating': isEdit ? tour['rating'] : 5.0,
+                            if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': tour['images'] ?? [],
+                          };
+
+                          bool success;
+                          if (isEdit) {
+                            success = await _tourService.updateTour(tour['id'], data);
+                          } else {
+                            success = await _tourService.createTour(data);
+                          }
+
+                          if (success) {
+                            Navigator.pop(ctx);
+                            _fetchTours();
+                            _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã tạo tour');
+                          } else {
+                            _showErrorSnackbar('Lỗi hệ thống');
+                          }
+                        } finally {
+                          if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      child: isSubmitting 
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(isEdit ? 'Lưu thay đổi' : 'Tạo tour', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    )),
+                    const SizedBox(height: 24),
+                  ]),
                 ),
-                const SizedBox(height: 16),
-                _field('Tên tour *', Icons.tour, isEdit ? tour['name'] : ''),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Expanded(child: _field('Giá/người (₫)', Icons.attach_money, isEdit ? tour['price'].toString() : '', isNumber: true)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _field('Nhóm tối đa', Icons.group, isEdit ? tour['groupSize'].toString() : '', isNumber: true)),
-                ]),
-                const SizedBox(height: 14),
-                const Text('Độ khó', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, children: [
-                  ChoiceChip(label: const Text('🟢 Dễ'), selected: false, onSelected: (_) {}),
-                  ChoiceChip(label: const Text('🟡 Vừa'), selected: true, onSelected: (_) {}, selectedColor: AppColors.accentOrange),
-                  ChoiceChip(label: const Text('🔴 Khó'), selected: false, onSelected: (_) {}),
-                ]),
-                const SizedBox(height: 14),
-                const Text('Hướng dẫn viên', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                _field('Tên HDV', Icons.person, ''),
-                const SizedBox(height: 10),
-                _field('Kinh nghiệm', Icons.workspace_premium, ''),
-                const SizedBox(height: 14),
-                const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-                const SizedBox(height: 24),
-                SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                  child: Text(isEdit ? 'Lưu thay đổi' : 'Tạo tour', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                )),
-                const SizedBox(height: 24),
-              ]),
-            ),
-          ),
-        ]),
+              ),
+            ]),
+          );
+        }
       ),
     );
   }
 
-  Widget _field(String label, IconData icon, String initial, {bool isNumber = false}) {
+  Widget _field(String label, IconData icon, TextEditingController ctrl, {bool isNumber = false}) {
     return TextField(
-      controller: TextEditingController(text: initial),
+      controller: ctrl,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
     );
   }
 
-  void _showScheduleEditor(BuildContext context, String name) {
+  void _showScheduleEditor(BuildContext context, Map<String, dynamic> tour) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -207,7 +286,7 @@ class _ManageToursPageState extends State<ManageToursPage> {
         child: Column(children: [
           Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
           Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text('Lịch trình — $name', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Lịch trình — ${tour['name']}', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
           ])),
           const Divider(height: 1),
@@ -221,6 +300,42 @@ class _ManageToursPageState extends State<ManageToursPage> {
         ]),
       ),
     );
+  }
+
+  void _showDeleteConfirm(BuildContext context, Map<String, dynamic> tour) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa "${tour['name']}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await _tourService.deleteTour(tour['id']);
+              if (success) {
+                _fetchTours();
+                _showSuccessSnackbar('Đã xóa ${tour['name']}');
+              } else {
+                _showErrorSnackbar('Lỗi khi xóa tour');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+  }
+
+  void _showSuccessSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
   }
 
   Widget _scheduleTile(String day, String title, String desc) {

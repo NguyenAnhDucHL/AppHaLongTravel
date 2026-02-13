@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:get/get.dart';
+import 'package:quang_ninh_travel/core/services/admin_service.dart';
+import 'package:quang_ninh_travel/core/utils/storage_utils.dart';
+import 'dart:io';
 
 class ManageDealsPage extends StatefulWidget {
   const ManageDealsPage({super.key});
@@ -9,27 +13,39 @@ class ManageDealsPage extends StatefulWidget {
 
 class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
+  final AdminService _adminService = Get.find<AdminService>();
 
-  final _deals = [
-    {'title': 'Giảm 30% Du thuyền Ambassador', 'type': 'cruise', 'discount': 30, 'valid': '28/02/2026', 'uses': 45, 'status': 'active'},
-    {'title': 'Combo 2N1Đ Paradise Hotel', 'type': 'hotel', 'discount': 25, 'valid': '15/03/2026', 'uses': 120, 'status': 'active'},
-    {'title': 'Miễn phí Kayak tour Bái Tử Long', 'type': 'tour', 'discount': 100, 'valid': '20/02/2026', 'uses': 30, 'status': 'active'},
-    {'title': 'Flash Sale Hải sản Phương Nam', 'type': 'restaurant', 'discount': 20, 'valid': '12/02/2026', 'uses': 88, 'status': 'expired'},
-  ];
-
-  final _destinations = [
-    {'name': 'Vịnh Hạ Long', 'desc': 'Di sản thiên nhiên thế giới', 'items': 15, 'views': 12500, 'featured': true},
-    {'name': 'Bái Tử Long', 'desc': 'Vịnh hoang sơ tuyệt đẹp', 'items': 8, 'views': 6800, 'featured': true},
-    {'name': 'Yên Tử', 'desc': 'Đất Phật thiêng liêng', 'items': 5, 'views': 8200, 'featured': true},
-    {'name': 'Đảo Cô Tô', 'desc': 'Thiên đường đảo hoang', 'items': 6, 'views': 5400, 'featured': false},
-    {'name': 'Móng Cái', 'desc': 'Thành phố biên giới sôi động', 'items': 4, 'views': 3200, 'featured': false},
-    {'name': 'Đảo Quan Lạn', 'desc': 'Biển xanh cát trắng', 'items': 3, 'views': 4100, 'featured': false},
-  ];
+  List<Map<String, dynamic>> _deals = [];
+  List<Map<String, dynamic>> _destinations = [];
+  bool _isLoadingDeals = false;
+  bool _isLoadingDestinations = false;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    _fetchDeals();
+    _fetchDestinations();
+  }
+
+  Future<void> _fetchDeals() async {
+    setState(() => _isLoadingDeals = true);
+    try {
+      final deals = await _adminService.listDeals();
+      setState(() => _deals = deals);
+    } finally {
+      setState(() => _isLoadingDeals = false);
+    }
+  }
+
+  Future<void> _fetchDestinations() async {
+    setState(() => _isLoadingDestinations = true);
+    try {
+      final dests = await _adminService.listDestinations();
+      setState(() => _destinations = dests);
+    } finally {
+      setState(() => _isLoadingDestinations = false);
+    }
   }
 
   @override
@@ -68,11 +84,15 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
   Widget _buildDealsTab() {
     return Stack(
       children: [
-        ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          itemCount: _deals.length,
-          itemBuilder: (ctx, i) => _buildDealCard(ctx, _deals[i]),
-        ),
+        _isLoadingDeals
+          ? const Center(child: CircularProgressIndicator())
+          : _deals.isEmpty
+            ? const Center(child: Text('Không có ưu đãi nào'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                itemCount: _deals.length,
+                itemBuilder: (ctx, i) => _buildDealCard(ctx, _deals[i]),
+              ),
         Positioned(
           bottom: 16, left: 16, right: 16,
           child: ElevatedButton.icon(
@@ -154,7 +174,7 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
               const Spacer(),
               _smallBtn(Icons.edit, AppColors.primaryBlue, () => _showDealForm(context, deal: deal)),
               const SizedBox(width: 6),
-              _smallBtn(Icons.delete_outline, AppColors.error, () {}),
+              _smallBtn(Icons.delete_outline, AppColors.error, () => _showDeleteDealConfirm(context, deal)),
             ]),
           ]),
         ),
@@ -164,58 +184,114 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
 
   void _showDealForm(BuildContext context, {Map<String, dynamic>? deal}) {
     final isEdit = deal != null;
+    final titleCtrl = TextEditingController(text: isEdit ? deal['title'] : '');
+    final discountCtrl = TextEditingController(text: isEdit ? deal['discount'].toString() : '');
+    final validCtrl = TextEditingController(text: isEdit ? deal['valid'] : '');
+    String type = isEdit ? deal['type'] : 'cruise';
+
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(ctx).size.height * 0.85,
-        decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(children: [
-          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-          Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text(isEdit ? 'Sửa Ưu đãi' : 'Tạo Ưu đãi mới', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-          ])),
-          const Divider(height: 1),
-          Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            GestureDetector(onTap: () {}, child: Container(
-              height: 120, decoration: BoxDecoration(color: AppColors.accentCoral.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.accentCoral.withOpacity(0.3))),
-              child: const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.add_photo_alternate, size: 32, color: AppColors.accentCoral),
-                SizedBox(height: 4), Text('Ảnh banner ưu đãi', style: TextStyle(color: AppColors.accentCoral, fontWeight: FontWeight.w500, fontSize: 13)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          bool isSubmitting = false;
+          File? pickedFile;
+
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.85,
+            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: Column(children: [
+              Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+                Text(isEdit ? 'Sửa Ưu đãi' : 'Tạo Ưu đãi mới', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
               ])),
-            )),
-            const SizedBox(height: 16),
-            _field('Tiêu đề ưu đãi *', Icons.local_offer, isEdit ? deal['title'] : ''),
-            const SizedBox(height: 14),
-            const Text('Áp dụng cho', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              ChoiceChip(label: const Text('🏨 Khách sạn'), selected: false, onSelected: (_) {}),
-              ChoiceChip(label: const Text('⛵ Du thuyền'), selected: false, onSelected: (_) {}),
-              ChoiceChip(label: const Text('🏔 Tour'), selected: true, onSelected: (_) {}, selectedColor: AppColors.accentOrange),
-              ChoiceChip(label: const Text('🍽 Nhà hàng'), selected: false, onSelected: (_) {}),
+              const Divider(height: 1),
+              Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                GestureDetector(onTap: () async {
+                  final file = await StorageUtils.pickImage();
+                  if (file != null) setSheetState(() => pickedFile = file);
+                }, child: Container(
+                  height: 120, decoration: BoxDecoration(
+                    color: AppColors.accentCoral.withOpacity(0.05), 
+                    borderRadius: BorderRadius.circular(16), 
+                    border: Border.all(color: AppColors.accentCoral.withOpacity(0.3)),
+                    image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
+                  ),
+                  child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add_photo_alternate, size: 32, color: AppColors.accentCoral),
+                    SizedBox(height: 4), Text('Ảnh banner ưu đãi', style: TextStyle(color: AppColors.accentCoral, fontWeight: FontWeight.w500, fontSize: 13)),
+                  ])) : null,
+                )),
+                const SizedBox(height: 16),
+                _field('Tiêu đề ưu đãi *', Icons.local_offer, titleCtrl),
+                const SizedBox(height: 14),
+                const Text('Áp dụng cho', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, children: ['cruise', 'hotel', 'tour', 'restaurant'].map((t) => ChoiceChip(
+                  label: Text(t.toUpperCase()), 
+                  selected: type == t, 
+                  onSelected: (s) { if(s) setSheetState(() => type = t); },
+                  selectedColor: AppColors.accentCoral,
+                  labelStyle: TextStyle(color: type == t ? Colors.white : AppColors.textDark),
+                )).toList()),
+                const SizedBox(height: 14),
+                Row(children: [
+                  Expanded(child: _field('Giảm giá (%)', Icons.percent, discountCtrl, isNumber: true)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _field('Ngày hết hạn', Icons.calendar_today, validCtrl)),
+                ]),
+                const SizedBox(height: 14),
+                _field('Mã ưu đãi (tùy chọn)', Icons.qr_code, TextEditingController()),
+                const SizedBox(height: 14),
+                const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Điều kiện áp dụng...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+                  onPressed: isSubmitting ? null : () async {
+                    if (titleCtrl.text.isEmpty || discountCtrl.text.isEmpty) {
+                      _showErrorSnackbar('Vui lòng nhập đầy đủ thông tin');
+                      return;
+                    }
+                    setSheetState(() => isSubmitting = true);
+                    try {
+                      String? imageUrl;
+                      if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'deals');
+
+                      final data = {
+                        'title': titleCtrl.text,
+                        'type': type,
+                        'discount': int.tryParse(discountCtrl.text) ?? 0,
+                        'valid': validCtrl.text,
+                        'status': 'active',
+                        if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': deal['images'] ?? [],
+                      };
+
+                      bool success;
+                      if (isEdit) {
+                        success = await _adminService.updateDeal(deal['id'], data);
+                      } else {
+                        success = await _adminService.createDeal(data);
+                      }
+
+                      if (success) {
+                        Navigator.pop(ctx);
+                        _fetchDeals();
+                      }
+                    } finally {
+                      if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentCoral, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  child: isSubmitting 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(isEdit ? 'Lưu thay đổi' : 'Tạo ưu đãi', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                )),
+                const SizedBox(height: 24),
+              ]))),
             ]),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: _field('Giảm giá (%)', Icons.percent, isEdit ? deal['discount'].toString() : '', isNumber: true)),
-              const SizedBox(width: 12),
-              Expanded(child: _field('Ngày hết hạn', Icons.calendar_today, isEdit ? deal['valid'] : '')),
-            ]),
-            const SizedBox(height: 14),
-            _field('Mã ưu đãi (tùy chọn)', Icons.qr_code, ''),
-            const SizedBox(height: 14),
-            const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Điều kiện áp dụng...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-            const SizedBox(height: 24),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentCoral, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              child: Text(isEdit ? 'Lưu thay đổi' : 'Tạo ưu đãi', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            )),
-            const SizedBox(height: 24),
-          ]))),
-        ]),
+          );
+        }
       ),
     );
   }
@@ -224,11 +300,15 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
   Widget _buildDestinationsTab() {
     return Stack(
       children: [
-        ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          itemCount: _destinations.length,
-          itemBuilder: (ctx, i) => _buildDestinationCard(ctx, _destinations[i]),
-        ),
+        _isLoadingDestinations
+          ? const Center(child: CircularProgressIndicator())
+          : _destinations.isEmpty
+            ? const Center(child: Text('Không có điểm đến nào'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                itemCount: _destinations.length,
+                itemBuilder: (ctx, i) => _buildDestinationCard(ctx, _destinations[i]),
+              ),
         Positioned(
           bottom: 16, left: 16, right: 16,
           child: ElevatedButton.icon(
@@ -287,68 +367,116 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           itemBuilder: (_) => [
             PopupMenuItem(child: Row(children: [Icon(isFeatured ? Icons.star_border : Icons.star, size: 18, color: AppColors.accentGold), const SizedBox(width: 8), Text(isFeatured ? 'Bỏ nổi bật' : 'Đặt nổi bật')])),
-            const PopupMenuItem(child: Row(children: [Icon(Icons.edit, size: 18, color: AppColors.primaryBlue), SizedBox(width: 8), Text('Sửa')])),
+            PopupMenuItem(onTap: () => _showDestinationForm(context, dest: dest), child: const Row(children: [Icon(Icons.edit, size: 18, color: AppColors.primaryBlue), SizedBox(width: 8), Text('Sửa')])),
             const PopupMenuItem(child: Row(children: [Icon(Icons.photo_library, size: 18, color: Colors.purple), SizedBox(width: 8), Text('Quản lý ảnh')])),
-            const PopupMenuItem(child: Row(children: [Icon(Icons.delete, size: 18, color: AppColors.error), SizedBox(width: 8), Text('Xóa')])),
+            PopupMenuItem(onTap: () => _showDeleteDestinationConfirm(context, dest), child: const Row(children: [Icon(Icons.delete, size: 18, color: AppColors.error), SizedBox(width: 8), Text('Xóa')])),
           ],
         ),
       ),
     );
   }
 
-  void _showDestinationForm(BuildContext context) {
+  void _showDestinationForm(BuildContext context, {Map<String, dynamic>? dest}) {
+    final isEdit = dest != null;
+    final nameCtrl = TextEditingController(text: isEdit ? dest['name'] : '');
+    final descCtrl = TextEditingController(text: isEdit ? dest['desc'] : '');
+    bool isFeatured = isEdit ? (dest['featured'] == true) : false;
+
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(ctx).size.height * 0.8,
-        decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(children: [
-          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-          Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text('Thêm Điểm đến', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-          ])),
-          const Divider(height: 1),
-          Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            GestureDetector(onTap: () {}, child: Container(
-              height: 160, decoration: BoxDecoration(color: AppColors.primaryBlue.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3))),
-              child: const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.add_photo_alternate, size: 40, color: AppColors.primaryBlue),
-                SizedBox(height: 6), Text('Ảnh bìa điểm đến', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
-                Text('Nên dùng ảnh ngang 16:9', style: TextStyle(color: AppColors.textLight, fontSize: 11)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          bool isSubmitting = false;
+          File? pickedFile;
+
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.8,
+            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: Column(children: [
+              Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+                Text(isEdit ? 'Sửa Điểm đến' : 'Thêm Điểm đến', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
               ])),
-            )),
-            const SizedBox(height: 16),
-            _field('Tên điểm đến *', Icons.place, ''),
-            const SizedBox(height: 14),
-            _field('Mô tả ngắn', Icons.description, ''),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: _field('Vĩ độ', Icons.my_location, '', isNumber: true)),
-              const SizedBox(width: 12),
-              Expanded(child: _field('Kinh độ', Icons.my_location, '', isNumber: true)),
+              const Divider(height: 1),
+              Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                GestureDetector(onTap: () async {
+                  final file = await StorageUtils.pickImage();
+                  if (file != null) setSheetState(() => pickedFile = file);
+                }, child: Container(
+                  height: 160, decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withOpacity(0.05), 
+                    borderRadius: BorderRadius.circular(16), 
+                    border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3)),
+                    image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
+                  ),
+                  child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add_photo_alternate, size: 40, color: AppColors.primaryBlue),
+                    SizedBox(height: 6), Text('Ảnh bìa điểm đến', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
+                    Text('Nên dùng ảnh ngang 16:9', style: TextStyle(color: AppColors.textLight, fontSize: 11)),
+                  ])) : null,
+                )),
+                const SizedBox(height: 16),
+                _field('Tên điểm đến *', Icons.place, nameCtrl),
+                const SizedBox(height: 14),
+                _field('Mô tả ngắn', Icons.description, descCtrl),
+                const SizedBox(height: 14),
+                SwitchListTile(
+                  value: isFeatured, 
+                  onChanged: (v) => setSheetState(() => isFeatured = v),
+                  title: const Text('Điểm đến nổi bật', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Hiển thị trên trang chủ', style: TextStyle(fontSize: 12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  tileColor: AppColors.backgroundLight,
+                ),
+                const SizedBox(height: 14),
+                const Text('Mô tả chi tiết', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(maxLines: 4, decoration: InputDecoration(hintText: 'Giới thiệu về điểm đến...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+                  onPressed: isSubmitting ? null : () async {
+                    if (nameCtrl.text.isEmpty) {
+                      _showErrorSnackbar('Vui lòng nhập tên điểm đến');
+                      return;
+                    }
+                    setSheetState(() => isSubmitting = true);
+                    try {
+                      String? imageUrl;
+                      if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'destinations');
+
+                      final data = {
+                        'name': nameCtrl.text,
+                        'desc': descCtrl.text,
+                        'featured': isFeatured,
+                        if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': dest['images'] ?? [],
+                      };
+
+                      bool success;
+                      if (isEdit) {
+                        success = await _adminService.updateDestination(dest['id'], data);
+                      } else {
+                        success = await _adminService.createDestination(data);
+                      }
+
+                      if (success) {
+                        Navigator.pop(ctx);
+                        _fetchDestinations();
+                      }
+                    } finally {
+                      if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  child: isSubmitting 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(isEdit ? 'Lưu thay đổi' : 'Thêm điểm đến', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                )),
+                const SizedBox(height: 24),
+              ]))),
             ]),
-            const SizedBox(height: 14),
-            SwitchListTile(
-              value: false, onChanged: (_) {},
-              title: const Text('Điểm đến nổi bật', style: TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: const Text('Hiển thị trên trang chủ', style: TextStyle(fontSize: 12)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              tileColor: AppColors.backgroundLight,
-            ),
-            const SizedBox(height: 14),
-            const Text('Mô tả chi tiết', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            TextField(maxLines: 4, decoration: InputDecoration(hintText: 'Giới thiệu về điểm đến...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-            const SizedBox(height: 24),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              child: const Text('Thêm điểm đến', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            )),
-            const SizedBox(height: 24),
-          ]))),
-        ]),
+          );
+        }
       ),
     );
   }
@@ -360,9 +488,49 @@ class _ManageDealsPageState extends State<ManageDealsPage> with SingleTickerProv
       child: Icon(icon, size: 16, color: color)),
   );
 
-  Widget _field(String label, IconData icon, String initial, {bool isNumber = false}) => TextField(
-    controller: TextEditingController(text: initial),
+  Widget _field(String label, IconData icon, TextEditingController ctrl, {bool isNumber = false}) => TextField(
+    controller: ctrl,
     keyboardType: isNumber ? TextInputType.number : TextInputType.text,
     decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
   );
+
+  void _showDeleteDealConfirm(BuildContext context, Map<String, dynamic> deal) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Xác nhận xóa'),
+      content: Text('Bạn có chắc muốn xóa ưu đãi "${deal['title']}"?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(ctx);
+            if (await _adminService.deleteDeal(deal['id'])) _fetchDeals();
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
+  }
+
+  void _showDeleteDestinationConfirm(BuildContext context, Map<String, dynamic> dest) {
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('Xác nhận xóa'),
+      content: Text('Bạn có chắc muốn xóa điểm đến "${dest['name']}"?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(ctx);
+            if (await _adminService.deleteDestination(dest['id'])) _fetchDestinations();
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
+  }
+
+  void _showErrorSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+  }
 }

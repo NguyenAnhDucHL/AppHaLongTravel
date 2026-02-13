@@ -260,6 +260,33 @@ export interface Payment {
     createdAt: Timestamp;
 }
 
+// ===== Deal =====
+export interface Deal {
+    id: string;
+    title: string;
+    type: string; // cruise, hotel, tour, restaurant
+    discount: number;
+    validUntil: string;
+    uses: number;
+    status: 'active' | 'expired';
+    createdAt: Timestamp;
+}
+
+// ===== Destination =====
+export interface Destination {
+    id: string;
+    name: string;
+    description: string;
+    longDescription?: string;
+    itemCount: number;
+    views: number;
+    featured: boolean;
+    lat?: number;
+    lng?: number;
+    images: string[];
+    createdAt: Timestamp;
+}
+
 // ===== API Response =====
 export interface ApiResponse<T = unknown> {
     success: boolean;

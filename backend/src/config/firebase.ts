@@ -20,4 +20,6 @@ export const Collections = {
     NOTIFICATIONS: 'notifications',
     PAYMENTS: 'payments',
     PAYMENT_METHODS: 'payment_methods',
+    DEALS: 'deals',
+    DESTINATIONS: 'destinations',
 } as const;

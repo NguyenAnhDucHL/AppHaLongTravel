@@ -21,6 +21,26 @@ export class TransportService {
         const vehicle = snapshot.docs[0].data() as Transport;
         return { price: Math.round(vehicle.pricePerKm * distanceKm), currency: 'VND' };
     }
+
+    async create(data: Omit<Transport, 'id'>): Promise<Transport> {
+        const docRef = await this.col.add({
+            ...data,
+            createdAt: new Date(),
+        });
+        const doc = await docRef.get();
+        return { id: doc.id, ...doc.data() } as Transport;
+    }
+
+    async update(id: string, data: Partial<Transport>): Promise<void> {
+        await this.col.doc(id).update({
+            ...data,
+            updatedAt: new Date(),
+        });
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.col.doc(id).delete();
+    }
 }
 
 export const transportService = new TransportService();

@@ -54,6 +54,28 @@ export class ReviewService {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
     }
 
+    async listAll(page = 1, limit = 20): Promise<{ items: Review[]; total: number }> {
+        const countSnap = await this.col.count().get();
+        const total = countSnap.data().count;
+
+        const snapshot = await this.col
+            .orderBy('createdAt', 'desc')
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .get();
+
+        const items = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
+        return { items, total };
+    }
+
+    async updateStatus(id: string, status: 'approved' | 'rejected' | 'pending'): Promise<void> {
+        await this.col.doc(id).update({ status });
+    }
+
+    async delete(id: string): Promise<void> {
+        await this.col.doc(id).delete();
+    }
+
     private getItemCollection(itemType: string): string | null {
         const map: Record<string, string> = {
             hotel: Collections.HOTELS,

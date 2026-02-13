@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:get/get.dart';
+import 'package:quang_ninh_travel/core/services/restaurant_service.dart';
+import 'package:quang_ninh_travel/core/utils/storage_utils.dart';
+import 'dart:io';
 
 class ManageRestaurantsPage extends StatefulWidget {
   const ManageRestaurantsPage({super.key});
@@ -9,11 +13,28 @@ class ManageRestaurantsPage extends StatefulWidget {
 }
 
 class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
-  final _restaurants = [
-    {'name': 'Nhà Hàng Phương Nam', 'cuisine': 'Hải sản', 'address': 'Bãi Cháy', 'rating': 4.5, 'priceRange': '\$\$', 'reviews': 520, 'status': 'active'},
-    {'name': 'Quán Ăn Làng Chài', 'cuisine': 'Bình dân', 'address': 'Cái Dăm', 'rating': 4.3, 'priceRange': '\$', 'reviews': 350, 'status': 'active'},
-    {'name': 'Cái Dăm Seafood Market', 'cuisine': 'Chợ hải sản', 'address': 'Chợ Cái Dăm', 'rating': 4.1, 'priceRange': '\$', 'reviews': 280, 'status': 'active'},
-  ];
+  final RestaurantService _restaurantService = Get.find<RestaurantService>();
+  
+  List<Map<String, dynamic>> _restaurants = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRestaurants();
+  }
+
+  Future<void> _fetchRestaurants() async {
+    setState(() => _isLoading = true);
+    try {
+      final restaurants = await _restaurantService.listRestaurants();
+      setState(() => _restaurants = restaurants);
+    } catch (e) {
+      _showErrorSnackbar('Lỗi khi tải danh sách nhà hàng');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +46,15 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Thêm Nhà hàng', style: TextStyle(color: Colors.white)),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(AppTheme.spacingM),
-        itemCount: _restaurants.length,
-        itemBuilder: (ctx, i) => _buildCard(ctx, _restaurants[i]),
-      ),
+      body: _isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _restaurants.isEmpty
+          ? const Center(child: Text('Không có dữ liệu nhà hàng'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(AppTheme.spacingM),
+              itemCount: _restaurants.length,
+              itemBuilder: (ctx, i) => _buildCard(ctx, _restaurants[i]),
+            ),
     );
   }
 
@@ -64,7 +89,7 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
                   decoration: BoxDecoration(color: AppColors.accentGold.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.star, size: 14, color: AppColors.accentGold),
-                    Text(' ${r['rating']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(' ${r['rating'] ?? 5.0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ]),
                 ),
               ]),
@@ -79,15 +104,13 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
               ]),
               const SizedBox(height: 8),
               Row(children: [
-                Text('${r['reviews']} đánh giá', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                Text('${r['reviews'] ?? 0} đánh giá', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
                 const Spacer(),
                 _iconBtn(Icons.edit, AppColors.primaryBlue, () => _showRestaurantForm(context, r: r)),
                 const SizedBox(width: 6),
-                _iconBtn(Icons.menu_book, AppColors.accentOrange, () => _showMenuEditor(context, r['name'] as String)),
+                _iconBtn(Icons.menu_book, AppColors.accentOrange, () => _showMenuEditor(context, r)),
                 const SizedBox(width: 6),
-                _iconBtn(Icons.photo_library, Colors.purple, () {}),
-                const SizedBox(width: 6),
-                _iconBtn(Icons.delete_outline, AppColors.error, () {}),
+                _iconBtn(Icons.delete_outline, AppColors.error, () => _showDeleteConfirm(context, r)),
               ]),
             ]),
           ),
@@ -110,74 +133,132 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
 
   void _showRestaurantForm(BuildContext context, {Map<String, dynamic>? r}) {
     final isEdit = r != null;
+    final nameCtrl = TextEditingController(text: isEdit ? r['name'] : '');
+    final addressCtrl = TextEditingController(text: isEdit ? r['address'] : '');
+    final phoneCtrl = TextEditingController(text: isEdit ? (r['phone'] ?? '') : '');
+    String priceRange = isEdit ? r['priceRange'] : '\$\$';
+
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        height: MediaQuery.of(ctx).size.height * 0.9,
-        decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(children: [
-          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-          Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text(isEdit ? 'Sửa Nhà hàng' : 'Thêm Nhà hàng', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-          ])),
-          const Divider(height: 1),
-          Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            GestureDetector(onTap: () {}, child: Container(
-              height: 130, decoration: BoxDecoration(color: AppColors.accentGold.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.accentGold.withOpacity(0.3))),
-              child: const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.add_photo_alternate, size: 36, color: AppColors.accentGold),
-                SizedBox(height: 6), Text('Tải ảnh nhà hàng', style: TextStyle(color: AppColors.accentGold, fontWeight: FontWeight.w500)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          bool isSubmitting = false;
+          File? pickedFile;
+
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.9,
+            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: Column(children: [
+              Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+                Text(isEdit ? 'Sửa Nhà hàng' : 'Thêm Nhà hàng', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
               ])),
-            )),
-            const SizedBox(height: 16),
-            _field('Tên nhà hàng *', Icons.restaurant, isEdit ? r['name'] : ''),
-            const SizedBox(height: 14),
-            _field('Địa chỉ *', Icons.location_on, isEdit ? r['address'] : ''),
-            const SizedBox(height: 14),
-            _field('Số điện thoại', Icons.phone, ''),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: _field('Giờ mở cửa', Icons.schedule, '10:00')),
-              const SizedBox(width: 12),
-              Expanded(child: _field('Giờ đóng cửa', Icons.schedule, '22:00')),
+              const Divider(height: 1),
+              Expanded(child: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                GestureDetector(onTap: () async {
+                  final file = await StorageUtils.pickImage();
+                  if (file != null) setSheetState(() => pickedFile = file);
+                }, child: Container(
+                  height: 130, decoration: BoxDecoration(
+                    color: AppColors.accentGold.withOpacity(0.05), 
+                    borderRadius: BorderRadius.circular(16), 
+                    border: Border.all(color: AppColors.accentGold.withOpacity(0.3)),
+                    image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
+                  ),
+                  child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.add_photo_alternate, size: 36, color: AppColors.accentGold),
+                    SizedBox(height: 6), Text('Tải ảnh nhà hàng', style: TextStyle(color: AppColors.accentGold, fontWeight: FontWeight.w500)),
+                  ])) : null,
+                )),
+                const SizedBox(height: 16),
+                _field('Tên nhà hàng *', Icons.restaurant, nameCtrl),
+                const SizedBox(height: 14),
+                _field('Địa chỉ *', Icons.location_on, addressCtrl),
+                const SizedBox(height: 14),
+                _field('Số điện thoại', Icons.phone, phoneCtrl),
+                const SizedBox(height: 14),
+                const Text('Loại ẩm thực', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 8, children: ['Hải sản', 'Việt Nam', 'Châu Á', 'BBQ', 'Chay', 'Đặc sản'].map((c) => FilterChip(
+                  label: Text(c, style: const TextStyle(fontSize: 12)), selected: c == (isEdit ? (r['cuisine'] ?? 'Hải sản') : 'Hải sản'), onSelected: (_) {},
+                  selectedColor: AppColors.accentGold, checkmarkColor: Colors.white,
+                )).toList()),
+                const SizedBox(height: 14),
+                const Text('Mức giá', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, children: ['\$', '\$\$', '\$\$\$'].map((p) => ChoiceChip(
+                  label: Text(p), 
+                  selected: priceRange == p, 
+                  onSelected: (s) { if (s) setSheetState(() => priceRange = p); },
+                  selectedColor: AppColors.accentGold,
+                  labelStyle: TextStyle(color: priceRange == p ? Colors.white : AppColors.textDark),
+                )).toList()),
+                const SizedBox(height: 14),
+                const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
+                  onPressed: isSubmitting ? null : () async {
+                    if (nameCtrl.text.isEmpty || addressCtrl.text.isEmpty) {
+                      _showErrorSnackbar('Vui lòng nhập tên và địa chỉ');
+                      return;
+                    }
+                    setSheetState(() => isSubmitting = true);
+                    try {
+                      String? imageUrl;
+                      if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'restaurants');
+
+                      final data = {
+                        'name': nameCtrl.text,
+                        'address': addressCtrl.text,
+                        'phone': phoneCtrl.text,
+                        'cuisine': isEdit ? (r['cuisine'] ?? 'Hải sản') : 'Hải sản',
+                        'priceRange': priceRange,
+                        'status': 'active',
+                        'rating': isEdit ? r['rating'] : 5.0,
+                        if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': r['images'] ?? [],
+                      };
+
+                      bool success;
+                      if (isEdit) {
+                        success = await _restaurantService.updateRestaurant(r['id'], data);
+                      } else {
+                        success = await _restaurantService.createRestaurant(data);
+                      }
+
+                      if (success) {
+                        Navigator.pop(ctx);
+                        _fetchRestaurants();
+                        _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã thêm nhà hàng');
+                      } else {
+                        _showErrorSnackbar('Lỗi hệ thống');
+                      }
+                    } finally {
+                      if (ctx.mounted) setSheetState(() => isSubmitting = false);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGold, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  child: isSubmitting 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(isEdit ? 'Lưu thay đổi' : 'Thêm nhà hàng', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                )),
+                const SizedBox(height: 24),
+              ]))),
             ]),
-            const SizedBox(height: 14),
-            const Text('Loại ẩm thực', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: ['Hải sản', 'Việt Nam', 'Châu Á', 'BBQ', 'Chay', 'Đặc sản'].map((c) => FilterChip(
-              label: Text(c, style: const TextStyle(fontSize: 12)), selected: c == 'Hải sản', onSelected: (_) {},
-              selectedColor: AppColors.accentGold, checkmarkColor: Colors.white,
-            )).toList()),
-            const SizedBox(height: 14),
-            const Text('Mức giá', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: ['\$ Bình dân', '\$\$ Trung bình', '\$\$\$ Cao cấp'].map((p) => ChoiceChip(
-              label: Text(p), selected: false, onSelected: (_) {},
-            )).toList()),
-            const SizedBox(height: 14),
-            const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-            const SizedBox(height: 24),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGold, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              child: Text(isEdit ? 'Lưu thay đổi' : 'Thêm nhà hàng', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-            )),
-            const SizedBox(height: 24),
-          ]))),
-        ]),
+          );
+        }
       ),
     );
   }
 
-  Widget _field(String label, IconData icon, String initial) => TextField(
-    controller: TextEditingController(text: initial),
+  Widget _field(String label, IconData icon, TextEditingController ctrl) => TextField(
+    controller: ctrl,
     decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
   );
 
-  void _showMenuEditor(BuildContext context, String name) {
+  void _showMenuEditor(BuildContext context, Map<String, dynamic> r) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -186,7 +267,7 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
         child: Column(children: [
           Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
           Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text('Thực đơn — $name', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Thực đơn — ${r['name']}', style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
           ])),
           const Divider(height: 1),
@@ -203,6 +284,41 @@ class _ManageRestaurantsPageState extends State<ManageRestaurantsPage> {
     );
   }
 
+  void _showDeleteConfirm(BuildContext context, Map<String, dynamic> r) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa "${r['name']}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await _restaurantService.deleteRestaurant(r['id']);
+              if (success) {
+                _fetchRestaurants();
+                _showSuccessSnackbar('Đã xóa ${r['name']}');
+              } else {
+                _showErrorSnackbar('Lỗi khi xóa nhà hàng');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+  }
+
+  void _showSuccessSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
+  }
   Widget _menuItem(String name, String price, bool popular) => Container(
     margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),

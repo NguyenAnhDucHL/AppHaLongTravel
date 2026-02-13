@@ -5,6 +5,7 @@ const auth_1 = require("../middleware/auth");
 const validation_1 = require("../middleware/validation");
 const booking_service_1 = require("../services/booking.service");
 const auth_service_1 = require("../services/auth.service");
+const review_service_1 = require("../services/review.service");
 const firebase_1 = require("../config/firebase");
 const seed_data_1 = require("../seed/seed-data");
 const router = (0, express_1.Router)();
@@ -167,6 +168,44 @@ router.delete('/users/:id', auth_1.authenticate, (0, auth_1.requireRole)('admin'
         }
         await auth_service_1.authService.deleteAccount(req.params.id);
         res.json({ success: true, message: 'User deleted' });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
+// ===== REVIEW MANAGEMENT (Admin/Collaborator) =====
+// GET /api/admin/reviews — List all reviews
+router.get('/reviews', auth_1.authenticate, (0, auth_1.requireRole)('admin', 'collaborator'), validation_1.validatePagination, async (req, res) => {
+    try {
+        const page = parseInt(req.query.page);
+        const limit = parseInt(req.query.limit);
+        const { items, total } = await review_service_1.reviewService.listAll(page, limit);
+        res.json({ success: true, data: items, pagination: { page, limit, total } });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
+// PUT /api/admin/reviews/:id/status — Approve/Reject review
+router.put('/reviews/:id/status', auth_1.authenticate, (0, auth_1.requireRole)('admin', 'collaborator'), async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!['approved', 'rejected', 'pending'].includes(status)) {
+            res.status(400).json({ success: false, error: 'Invalid status' });
+            return;
+        }
+        await review_service_1.reviewService.updateStatus(req.params.id, status);
+        res.json({ success: true, message: 'Review status updated' });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
+// DELETE /api/admin/reviews/:id — Delete review
+router.delete('/reviews/:id', auth_1.authenticate, (0, auth_1.requireRole)('admin'), async (req, res) => {
+    try {
+        await review_service_1.reviewService.delete(req.params.id);
+        res.json({ success: true, message: 'Review deleted' });
     }
     catch (error) {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });

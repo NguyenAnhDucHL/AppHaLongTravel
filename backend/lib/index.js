@@ -53,6 +53,8 @@ const notifications_1 = __importDefault(require("./routes/notifications"));
 const search_1 = __importDefault(require("./routes/search"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const payments_1 = __importDefault(require("./routes/payments"));
+const deals_1 = __importDefault(require("./routes/deals"));
+const destinations_1 = __importDefault(require("./routes/destinations"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({ origin: true }));
 app.use(express_1.default.json());
@@ -72,6 +74,8 @@ app.use('/api/notifications', notifications_1.default);
 app.use('/api/search', search_1.default);
 app.use('/api/admin', admin_1.default);
 app.use('/api/payments', payments_1.default);
+app.use('/api/deals', deals_1.default);
+app.use('/api/destinations', destinations_1.default);
 app.use((_req, res) => { res.status(404).json({ success: false, error: 'Not found' }); });
 exports.api = functions.https.onRequest(app);
 //# sourceMappingURL=index.js.map

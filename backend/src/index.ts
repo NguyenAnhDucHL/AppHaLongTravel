@@ -14,6 +14,8 @@ import notificationRoutes from './routes/notifications';
 import searchRoutes from './routes/search';
 import adminRoutes from './routes/admin';
 import paymentRoutes from './routes/payments';
+import dealRoutes from './routes/deals';
+import destinationRoutes from './routes/destinations';
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -36,6 +38,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/deals', dealRoutes);
+app.use('/api/destinations', destinationRoutes);
 
 app.use((_req, res) => { res.status(404).json({ success: false, error: 'Not found' }); });
 
