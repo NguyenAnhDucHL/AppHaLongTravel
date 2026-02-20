@@ -184,6 +184,75 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
     );
   }
 
+  void _showRoleDialog(BuildContext context, Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => UserRoleDialog(
+        user: user,
+        onRoleChanged: (success) {
+          if (success) {
+            _fetchUsers();
+            _showSuccessSnackbar('Đã cập nhật vai trò cho ${user['name']}');
+          }
+        },
+      ),
+    );
+  }
+
+  void _showAssignDialog(BuildContext context, Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AssignServicesDialog(
+        user: user,
+        onAssigned: (success) {
+          if (success) {
+            _fetchUsers();
+            _showSuccessSnackbar('Đã cập nhật dịch vụ cho ${user['name']}');
+          }
+        },
+      ),
+    );
+  }
+
+  void _toggleActive(Map<String, dynamic> user) async {
+    final isActive = user['isActive'] as bool? ?? true;
+    final success = await _adminService.setUserActive(user['uid'] ?? user['id'], !isActive);
+    if (success) {
+      _fetchUsers();
+      _showSuccessSnackbar(!isActive ? 'Đã mở khóa ${user['name']}' : 'Đã chặn ${user['name']}');
+    } else {
+      _showErrorSnackbar('Lỗi khi cập nhật trạng thái');
+    }
+  }
+
+  void _confirmDelete(BuildContext context, Map<String, dynamic> user) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc muốn xóa tài khoản ${user['name']}? Hành động này không thể hoàn tác.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final success = await _adminService.deleteUser(user['uid'] ?? user['id']);
+              if (success) {
+                _fetchUsers();
+                _showSuccessSnackbar('Đã xóa ${user['name']}');
+              } else {
+                _showErrorSnackbar('Lỗi khi xóa người dùng');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _actionBtn(IconData icon, Color color, VoidCallback onTap) => InkWell(
     onTap: onTap, borderRadius: BorderRadius.circular(8),
     child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
@@ -203,45 +272,68 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
     }
   }
 
-  void _showRoleDialog(BuildContext context, Map<String, dynamic> user) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Đổi vai trò — ${user['name']}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _roleOption(ctx, user, 'admin', '👑 Quản trị viên', 'Toàn quyền hệ thống'),
-            _roleOption(ctx, user, 'collaborator', '🤝 Cộng tác viên', 'Quản lý dịch vụ được gán'),
-            _roleOption(ctx, user, 'customer', '👤 Khách hàng', 'Đặt dịch vụ, viết đánh giá'),
-            _roleOption(ctx, user, 'guest', '👻 Khách vãng lai', 'Chỉ xem thông tin'),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng')),
+  void _showSuccessSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
+  }
+
+  void _showErrorSnackbar(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating));
+  }
+}
+
+class UserRoleDialog extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final Function(bool) onRoleChanged;
+
+  const UserRoleDialog({super.key, required this.user, required this.onRoleChanged});
+
+  @override
+  State<UserRoleDialog> createState() => _UserRoleDialogState();
+}
+
+class _UserRoleDialogState extends State<UserRoleDialog> {
+  final AdminService _adminService = Get.find<AdminService>();
+  bool _isSubmitting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Đổi vai trò — ${widget.user['name']}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _roleOption('admin', '👑 Quản trị viên', 'Toàn quyền hệ thống'),
+          _roleOption('collaborator', '🤝 Cộng tác viên', 'Quản lý dịch vụ được gán'),
+          _roleOption('customer', '👤 Khách hàng', 'Đặt dịch vụ, viết đánh giá'),
+          _roleOption('guest', '👻 Khách vãng lai', 'Chỉ xem thông tin'),
         ],
       ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Đóng')),
+      ],
     );
   }
 
-  Widget _roleOption(BuildContext context, Map<String, dynamic> user, String role, String label, String desc) {
-    final isSelected = user['role'] == role;
+  Widget _roleOption(String role, String label, String desc) {
+    final isSelected = widget.user['role'] == role;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () async {
-          final success = await _adminService.setUserRole(user['uid'] ?? user['id'], role);
-          if (success) {
-            _fetchUsers();
-            Navigator.pop(context);
-            Get.snackbar('✅ Đã cập nhật', '${user['name']} → $label',
-              snackPosition: SnackPosition.TOP,
-              backgroundColor: AppColors.success.withOpacity(0.9),
-              colorText: Colors.white,
-            );
-          } else {
-             Get.snackbar('❌ Lỗi', 'Không thể đổi vai trò', backgroundColor: AppColors.error, colorText: Colors.white);
+        onTap: _isSubmitting ? null : () async {
+          setState(() => _isSubmitting = true);
+          try {
+            final success = await _adminService.setUserRole(widget.user['uid'] ?? widget.user['id'], role);
+            if (success) {
+              Navigator.pop(context);
+              widget.onRoleChanged(true);
+            } else {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể đổi vai trò'), backgroundColor: AppColors.error));
+              }
+            }
+          } finally {
+            if (mounted) setState(() => _isSubmitting = false);
           }
         },
         borderRadius: BorderRadius.circular(12),
@@ -257,107 +349,99 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               Text(desc, style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
             ])),
-            if (isSelected) const Icon(Icons.check_circle, color: AppColors.primaryBlue),
+            if (_isSubmitting && isSelected)
+              const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            else if (isSelected)
+              const Icon(Icons.check_circle, color: AppColors.primaryBlue),
           ]),
         ),
       ),
     );
   }
+}
 
-  void _showAssignDialog(BuildContext context, Map<String, dynamic> user) {
-    // This would typically fetch services from backend
-    final allServices = ['Paradise Hotel', 'Novotel Ha Long', 'Ambassador Cruise', 'Stellar of the Seas', 'Hạ Long Full Day Tour', 'Yên Tử Trek', 'Nhà hàng Phương Nam'];
-    final assigned = List<String>.from((user['assignedServices'] as List?) ?? []);
+class AssignServicesDialog extends StatefulWidget {
+  final Map<String, dynamic> user;
+  final Function(bool) onAssigned;
 
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (sctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Gán dịch vụ — ${user['name']}'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: allServices.map((s) => CheckboxListTile(
-                value: assigned.contains(s),
-                onChanged: (v) {
-                  setDialogState(() {
-                    if (v!) {
-                      assigned.add(s);
-                    } else {
-                      assigned.remove(s);
-                    }
-                  });
-                },
-                title: Text(s, style: const TextStyle(fontSize: 14)),
-                dense: true,
-                activeColor: Colors.purple,
-              )).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-            ElevatedButton(
-              onPressed: () async {
-                final success = await _adminService.setUserRole(user['uid'] ?? user['id'], user['role'], assignedServices: assigned);
-                if (success) {
-                  _fetchUsers();
-                  Navigator.pop(ctx);
-                  Get.snackbar('✅ Đã gán', '${assigned.length} dịch vụ cho ${user['name']}',
-                    snackPosition: SnackPosition.TOP,
-                    backgroundColor: Colors.purple.withOpacity(0.9),
-                    colorText: Colors.white,
-                  );
-                }
+  const AssignServicesDialog({super.key, required this.user, required this.onAssigned});
+
+  @override
+  State<AssignServicesDialog> createState() => _AssignServicesDialogState();
+}
+
+class _AssignServicesDialogState extends State<AssignServicesDialog> {
+  final AdminService _adminService = Get.find<AdminService>();
+  // This would typically fetch services from backend
+  final List<String> _allServices = ['Paradise Hotel', 'Novotel Ha Long', 'Ambassador Cruise', 'Stellar of the Seas', 'Hạ Long Full Day Tour', 'Yên Tử Trek', 'Nhà hàng Phương Nam'];
+  late List<String> _assigned;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _assigned = List<String>.from((widget.user['assignedServices'] as List?) ?? []);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Gán dịch vụ — ${widget.user['name']}'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _allServices.map((s) => CheckboxListTile(
+              value: _assigned.contains(s),
+              onChanged: (v) {
+                setState(() {
+                  if (v!) {
+                    _assigned.add(s);
+                  } else {
+                    _assigned.remove(s);
+                  }
+                });
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-              child: const Text('Lưu', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+              title: Text(s, style: const TextStyle(fontSize: 14)),
+              dense: true,
+              activeColor: Colors.purple,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            )).toList(),
+          ),
         ),
       ),
-    );
-  }
-
-  void _toggleActive(Map<String, dynamic> user) async {
-    final isActive = user['isActive'] as bool? ?? true;
-    final success = await _adminService.setUserActive(user['uid'] ?? user['id'], !isActive);
-    if (success) {
-      _fetchUsers();
-      Get.snackbar(
-        !isActive ? '✅ Đã mở khóa' : '🚫 Đã chặn',
-        user['name'] as String,
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: (!isActive ? AppColors.success : AppColors.error).withOpacity(0.9),
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  void _confirmDelete(BuildContext context, Map<String, dynamic> user) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa tài khoản ${user['name']}? Hành động này không thể hoàn tác.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Hủy')),
-          ElevatedButton(
-            onPressed: () async {
-              final success = await _adminService.deleteUser(user['uid'] ?? user['id']);
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : () async {
+            setState(() => _isSubmitting = true);
+            try {
+              final success = await _adminService.setUserRole(
+                widget.user['uid'] ?? widget.user['id'], 
+                widget.user['role'], 
+                assignedServices: _assigned
+              );
               if (success) {
-                _fetchUsers();
-                Navigator.pop(ctx);
-                Get.snackbar('🗑 Đã xóa', user['name'] as String, snackPosition: SnackPosition.TOP);
+                Navigator.pop(context);
+                widget.onAssigned(true);
+              } else {
+                 if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi khi gán dịch vụ'), backgroundColor: AppColors.error));
+                }
               }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+            } finally {
+              if (mounted) setState(() => _isSubmitting = false);
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+          child: _isSubmitting 
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Text('Lưu', style: TextStyle(color: Colors.white)),
+        ),
+      ],
     );
   }
 }

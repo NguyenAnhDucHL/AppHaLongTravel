@@ -5,6 +5,10 @@ import 'package:quang_ninh_travel/app/themes/app_theme.dart';
 import 'package:quang_ninh_travel/app/routes/app_pages.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:quang_ninh_travel/core/services/auth_service.dart';
+import 'package:quang_ninh_travel/core/services/hotel_service.dart';
+import 'package:quang_ninh_travel/core/services/cruise_service.dart';
+import 'package:quang_ninh_travel/core/services/tour_service.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +19,54 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
+  final _hotelService = Get.find<HotelService>();
+  final _cruiseService = Get.find<CruiseService>();
+  final _tourService = Get.find<TourService>();
+
+  // Data lists
+  List<Map<String, dynamic>> _featuredDeals = [];
+  List<Map<String, dynamic>> _popularDestinations = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHomeData();
+  }
+
+  Future<void> _fetchHomeData() async {
+    try {
+      final hotels = await _hotelService.listHotels();
+      final cruises = await _cruiseService.listCruises();
+      final tours = await _tourService.listTours();
+
+      // Mix and tag data for Featured Deals
+      List<Map<String, dynamic>> deals = [];
+      if (cruises.isNotEmpty) {
+        deals.addAll(cruises.take(3).map((e) => {...e, 'itemType': 'cruise'}));
+      }
+      if (hotels.isNotEmpty) {
+        deals.addAll(hotels.take(2).map((e) => {...e, 'itemType': 'hotel'}));
+      }
+      
+      // Tag data for Popular Destinations (Tours)
+      List<Map<String, dynamic>> destinations = [];
+      if (tours.isNotEmpty) {
+        destinations.addAll(tours.take(5).map((e) => {...e, 'itemType': 'tour'}));
+      }
+
+      if (mounted) {
+        setState(() {
+          _featuredDeals = deals..shuffle(); // Randomize a bit
+          _popularDestinations = destinations;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching home data: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -301,6 +353,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildFeaturedDeals() {
+    if (_isLoading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+    }
+    
+    if (_featuredDeals.isEmpty) {
+      return const SizedBox.shrink(); // Hide if no data
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -310,11 +370,11 @@ class _HomePageState extends State<HomePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'featured_deals'.tr,
+                'featured_deals'.tr, // Note: Ensure this key exists or use 'Ưu đãi nổi bật'
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => Get.toNamed(Routes.cruises), // Default to Cruises for deals
                 child: Text('view_all'.tr),
               ),
             ],
@@ -322,78 +382,104 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: AppTheme.spacingM),
         SizedBox(
-          height: 220,
+          height: 240, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-            itemCount: 5,
+            itemCount: _featuredDeals.length,
             itemBuilder: (context, index) {
-              return Container(
-                width: 280,
-                margin: const EdgeInsets.only(right: AppTheme.spacingM),
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundWhite,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(AppTheme.radiusL),
+              final item = _featuredDeals[index];
+              final images = item['images'] as List?;
+              final imageUrl = (images != null && images.isNotEmpty) ? images[0] : null;
+              final name = item['name'] ?? 'Unknown';
+              final price = item['price'] ?? 0;
+              final location = item['address'] ?? item['route'] ?? 'Quảng Ninh';
+
+              return GestureDetector(
+                onTap: () {
+                  final type = item['itemType'];
+                  final id = item['id'];
+                  
+                  if (id == null) {
+                    print('Error: Item ID is null for $name');
+                    return;
+                  }
+
+                  if (type == 'cruise') {
+                    Get.toNamed(Routes.cruiseDetail, arguments: id);
+                  } else if (type == 'hotel') {
+                    Get.toNamed(Routes.hotelDetail, arguments: id);
+                  } else if (type == 'tour') {
+                    Get.toNamed(Routes.tourDetail, arguments: id);
+                  }
+                },
+                child: Container(
+                  width: 280,
+                  margin: const EdgeInsets.only(right: AppTheme.spacingM, bottom: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundWhite,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      child: Container(
-                        height: 140,
-                        color: AppColors.primaryLight.withOpacity(0.3),
-                        child: const Center(
-                          child: Icon(Icons.image, size: 48, color: AppColors.textLight),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(AppTheme.radiusL),
+                        ),
+                        child: Container(
+                          height: 140,
+                          color: AppColors.primaryLight.withOpacity(0.3),
+                          child: imageUrl != null
+                              ? Image.network(imageUrl, fit: BoxFit.cover, width: double.infinity)
+                              : const Center(child: Icon(Icons.image, size: 48, color: AppColors.textLight)),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(AppTheme.spacingM),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${'special_package'.tr} ${index + 1}',
-                            style: Theme.of(context).textTheme.titleLarge,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: AppTheme.spacingXS),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on, size: 14, color: AppColors.textLight),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'quang_ninh_bay'.tr,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                      Padding(
+                        padding: const EdgeInsets.all(AppTheme.spacingM),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: AppTheme.spacingXS),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 14, color: AppColors.textLight),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    location,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '\$${(index + 1) * 50}',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: AppColors.accentOrange,
-                                  fontWeight: FontWeight.bold,
+                                Text(
+                                  '\$${price}', 
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppColors.accentOrange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -404,72 +490,101 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildPopularDestinations() {
+    if (_popularDestinations.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
-          child: Text(
-            'popular_destinations'.tr,
-            style: Theme.of(context).textTheme.headlineMedium,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'popular_destinations'.tr,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              TextButton(
+                onPressed: () => Get.toNamed(Routes.tours),
+                child: Text('view_all'.tr),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppTheme.spacingM),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
           child: Column(
-            children: List.generate(3, (index) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundWhite,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(AppTheme.radiusM),
+            children: List.generate(_popularDestinations.length, (index) {
+              final item = _popularDestinations[index];
+              final images = item['images'] as List?;
+              final imageUrl = (images != null && images.isNotEmpty) ? images[0] : null;
+              final name = item['name'] ?? 'Tour tham quan';
+              final duration = item['duration'] ?? 'Trong ngày';
+              
+              return GestureDetector(
+                onTap: () {
+                  final id = item['id'];
+                  if (id != null) {
+                     Get.toNamed(Routes.tourDetail, arguments: id);
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundWhite,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                      child: Container(
-                        width: 100,
-                        color: AppColors.primaryLight.withOpacity(0.3),
-                        child: const Icon(Icons.landscape, size: 40, color: AppColors.textLight),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTheme.spacingM),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '${'destination'.tr} ${index + 1}',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: AppTheme.spacingXS),
-                            Text(
-                              'popular_spot'.tr,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(AppTheme.radiusM),
+                        ),
+                        child: Container(
+                          width: 100,
+                          color: AppColors.primaryLight.withOpacity(0.3),
+                          child: imageUrl != null 
+                            ? Image.network(imageUrl, fit: BoxFit.cover)
+                            : const Icon(Icons.landscape, size: 40, color: AppColors.textLight),
                         ),
                       ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.only(right: AppTheme.spacingM),
-                      child: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textLight),
-                    ),
-                  ],
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppTheme.spacingM),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                style: Theme.of(context).textTheme.titleLarge,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: AppTheme.spacingXS),
+                              Text(
+                                duration,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(right: AppTheme.spacingM),
+                        child: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textLight),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),

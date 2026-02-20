@@ -6,7 +6,7 @@
     "scripts": {
         "build": "./node_modules/.bin/tsc",
         "build:watch": "tsc --watch",
-        "serve": "npm run build && firebase emulators:start --only functions,firestore,auth",
+        "serve": "npm run build && cd .. && firebase emulators:start --only functions,firestore,auth,storage",
         "deploy": "firebase deploy --only functions,firestore",
         "seed": "ts-node src/seed/run-seed.ts",
         "lint": "eslint src/**/*.ts"

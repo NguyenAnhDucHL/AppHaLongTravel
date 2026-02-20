@@ -14,17 +14,34 @@ class StorageUtils {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        // imageQuality: 70, // REMOVED: Causes errors on some iOS versions
       );
       if (image != null) {
         final originalFile = File(image.path);
-        // Compress before returning
         return await _compressImage(originalFile);
       }
       return null;
     } catch (e) {
       print('Error picking image: $e');
       return null;
+    }
+  }
+
+  /// Pick multiple images from gallery
+  static Future<List<File>> pickMultiImage() async {
+    try {
+      final List<XFile> images = await _picker.pickMultiImage();
+      if (images.isEmpty) return [];
+
+      List<File> compressedFiles = [];
+      for (var image in images) {
+        final originalFile = File(image.path);
+        final compressed = await _compressImage(originalFile);
+        compressedFiles.add(compressed);
+      }
+      return compressedFiles;
+    } catch (e) {
+      print('Error picking multiple images: $e');
+      return [];
     }
   }
 
@@ -52,15 +69,37 @@ class StorageUtils {
   /// Upload file to Firebase Storage and return download URL
   static Future<String?> uploadFile(File file, String folder) async {
     try {
+      if (!file.existsSync()) {
+        print('Error: File does not exist at path: ${file.path}');
+        return null;
+      }
+      
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}${path.extension(file.path)}';
       final Reference ref = _storage.ref().child(folder).child(fileName);
       
+      print('Starting upload to: ${ref.fullPath}');
+      print('File size: ${await file.length()} bytes');
+
       final UploadTask uploadTask = ref.putFile(file);
       final TaskSnapshot snapshot = await uploadTask;
       
-      return await snapshot.ref.getDownloadURL();
+      print('Upload complete. State: ${snapshot.state}');
+      
+      if (snapshot.state == TaskState.success) {
+        print('Getting download URL...');
+        final url = await snapshot.ref.getDownloadURL();
+        print('Download URL: $url');
+        return url;
+      } else {
+        print('Upload failed with state: ${snapshot.state}');
+        return null;
+      }
     } catch (e) {
-      print('Error uploading file: $e');
+      print('Error uploading file (Stack trace): $e');
+      if (e is FirebaseException) {
+        print('Code: ${e.code}');
+        print('Message: ${e.message}');
+      }
       return null;
     }
   }

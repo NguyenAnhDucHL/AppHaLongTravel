@@ -56,6 +56,7 @@ export interface Hotel {
     category: string;
     featured: boolean;
     rooms: HotelRoom[];
+    contactInfo?: { phone: string; email?: string; website?: string };
     createdAt: Timestamp;
 }
 
@@ -80,6 +81,8 @@ export interface Cruise {
     description: string;
     duration: string;
     route: string;
+    lat: number;
+    lng: number;
     rating: number;
     reviewCount: number;
     pricePerPerson: number;
@@ -89,6 +92,7 @@ export interface Cruise {
     images: string[];
     included: string[];
     excluded: string[];
+    contactInfo?: { phone: string; email?: string; website?: string };
     createdAt: Timestamp;
 }
 
@@ -112,6 +116,8 @@ export interface Tour {
     description: string;
     duration: string;
     difficulty: 'easy' | 'moderate' | 'hard';
+    lat: number;
+    lng: number;
     rating: number;
     reviewCount: number;
     pricePerPerson: number;
@@ -119,6 +125,7 @@ export interface Tour {
     schedule: TourSchedule[];
     guide: TourGuide;
     images: string[];
+    contactInfo?: { phone: string; email?: string; website?: string };
     createdAt: Timestamp;
 }
 
@@ -153,14 +160,20 @@ export interface Restaurant {
 // ===== Transport =====
 export interface Transport {
     id: string;
-    vehicleType: string;
+    name: string;
+    type: string; // Bus, Taxi, etc.
     capacity: number;
-    pricePerKm: number;
+    price: number;
+    currency: string;
+    route?: string;
+    images: string[];
     available: boolean;
-    driver?: string;
-    licensePlate?: string;
+    status: string; // active, maintenance
+    rating: number;
     description: string;
-    image?: string;
+    contactInfo?: { phone: string; email?: string; website?: string };
+    createdAt?: Timestamp;
+    updatedAt?: Timestamp;
 }
 
 // ===== Booking =====

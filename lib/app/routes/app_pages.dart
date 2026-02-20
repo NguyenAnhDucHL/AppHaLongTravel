@@ -6,6 +6,7 @@ import 'package:quang_ninh_travel/features/cruises/cruises_page.dart';
 import 'package:quang_ninh_travel/features/cruises/cruise_detail_page.dart';
 import 'package:quang_ninh_travel/features/transport/transport_page.dart';
 import 'package:quang_ninh_travel/features/transport/transport_booking_page.dart';
+import 'package:quang_ninh_travel/features/transport/transport_detail_page.dart';
 import 'package:quang_ninh_travel/features/restaurants/restaurants_page.dart';
 import 'package:quang_ninh_travel/features/restaurants/restaurant_detail_page.dart';
 import 'package:quang_ninh_travel/features/tours/tours_page.dart';
@@ -14,6 +15,7 @@ import 'package:quang_ninh_travel/features/profile/profile_page.dart';
 import 'package:quang_ninh_travel/features/profile/profile_edit_page.dart';
 import 'package:quang_ninh_travel/features/bookings/my_bookings_page.dart';
 import 'package:quang_ninh_travel/features/bookings/booking_detail_page.dart';
+import 'package:quang_ninh_travel/features/bookings/booking_create_page.dart';
 import 'package:quang_ninh_travel/features/favorites/favorites_page.dart';
 import 'package:quang_ninh_travel/features/payment/payment_methods_page.dart';
 import 'package:quang_ninh_travel/features/admin/admin_page.dart';
@@ -94,6 +96,11 @@ class AppPages {
       transition: Transition.rightToLeft,
     ),
     GetPage(
+      name: Routes.transportDetail,
+      page: () => const TransportDetailPage(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
       name: Routes.restaurants,
       page: () => const RestaurantsPage(),
       transition: Transition.rightToLeft,
@@ -126,6 +133,11 @@ class AppPages {
     GetPage(
       name: Routes.bookings,
       page: () => const MyBookingsPage(),
+      transition: Transition.rightToLeft,
+    ),
+    GetPage(
+      name: Routes.bookingCreate,
+      page: () => const BookingCreatePage(),
       transition: Transition.rightToLeft,
     ),
     GetPage(

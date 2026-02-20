@@ -9,6 +9,11 @@ export class TransportService {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Transport));
     }
 
+    async listAll(): Promise<Transport[]> {
+        const snapshot = await this.col.get();
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Transport));
+    }
+
     async getById(id: string): Promise<Transport | null> {
         const doc = await this.col.doc(id).get();
         if (!doc.exists) return null;

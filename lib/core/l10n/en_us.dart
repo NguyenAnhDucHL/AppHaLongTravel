@@ -341,6 +341,17 @@ const Map<String, String> enUS = {
   'transport_limo': 'Limousine',
   'seats': 'seats',
 
+  // Booking Create
+  'booking_title': 'Book your Trip',
+  'contact_details': 'Contact Details',
+  'trip_details': 'Trip Details',
+  'check_in_date': 'Check-in Date',
+  'date': 'Date',
+  'special_requests': 'Special Requests',
+  'notes_hint': 'Any special requests or notes...',
+  'fill_all_fields': 'Please fill all required fields',
+  'website': 'Website',
+
   // Booking Detail
   'booking_details': 'Booking Details',
   'booking_info': 'Booking Information',

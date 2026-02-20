@@ -17,6 +17,18 @@ class RestaurantService extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>?> getRestaurant(String id) async {
+    try {
+      final res = await _api.get('${ApiConfig.restaurants}/$id');
+      if (res.data['success'] == true) {
+        return res.data['data'] as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<bool> createRestaurant(Map<String, dynamic> data) async {
     try {
       final res = await _api.post(ApiConfig.restaurants, data: data);

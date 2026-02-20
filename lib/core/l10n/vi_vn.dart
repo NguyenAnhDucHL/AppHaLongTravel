@@ -341,6 +341,17 @@ const Map<String, String> viVN = {
   'transport_limo': 'Limousine',
   'seats': 'chỗ',
 
+  // Booking Create
+  'booking_title': 'Đặt chuyến đi',
+  'contact_details': 'Thông tin liên hệ',
+  'trip_details': 'Chi tiết chuyến đi',
+  'check_in_date': 'Ngày nhận phòng',
+  'date': 'Ngày',
+  'special_requests': 'Yêu cầu đặc biệt',
+  'notes_hint': 'Bất kỳ yêu cầu đặc biệt nào...',
+  'fill_all_fields': 'Vui lòng điền đầy đủ thông tin',
+  'website': 'Website',
+
   // Booking Detail
   'booking_details': 'Chi tiết đặt chỗ',
   'booking_info': 'Thông tin đặt chỗ',

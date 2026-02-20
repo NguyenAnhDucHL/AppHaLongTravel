@@ -27,7 +27,15 @@ router.get('/estimate', async (req: Request, res: Response) => {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
     }
 });
-
+// GET /api/transport/admin/all — Admin only
+router.get('/admin/all', authenticate, requireRole('admin'), async (_req: Request, res: Response) => {
+    try {
+        const vehicles = await transportService.listAll();
+        res.json({ success: true, data: vehicles });
+    } catch (error: unknown) {
+        res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed' });
+    }
+});
 // POST /api/transport — Admin only
 router.post('/', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
     try {

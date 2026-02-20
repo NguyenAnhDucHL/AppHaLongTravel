@@ -17,6 +17,21 @@ class TransportService extends GetxService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> listAllVehicles() async {
+    try {
+      print('TransportService: Fetching all vehicles from ${ApiConfig.transport}/admin/all');
+      final res = await _api.get('${ApiConfig.transport}/admin/all');
+      print('TransportService: Response success=${res.data['success']} data_length=${(res.data['data'] as List?)?.length}');
+      if (res.data['success'] == true) {
+        return List<Map<String, dynamic>>.from(res.data['data']);
+      }
+      return [];
+    } catch (e) {
+      print('TransportService: Error fetching all vehicles: $e');
+      return [];
+    }
+  }
+
   Future<bool> createTransport(Map<String, dynamic> data) async {
     try {
       final res = await _api.post(ApiConfig.transport, data: data);

@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:quang_ninh_travel/shared/widgets/contact_bottom_sheet.dart';
+
+import 'package:quang_ninh_travel/app/routes/app_pages.dart';
+import 'package:quang_ninh_travel/shared/widgets/location_viewer.dart';
 
 class TourDetailPage extends StatelessWidget {
   const TourDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final tour = Get.arguments as Map<String, dynamic>;
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -87,53 +92,56 @@ class TourDetailPage extends StatelessWidget {
                       Expanded(child: _buildInfoCard(context, Icons.directions_bus, 'transport'.tr, 'transport_included'.tr)),
                     ],
                   ),
+                  const SizedBox(height: AppTheme.spacingS),
+                  
+                  // Difficulty & Duration
+                  Row(
+                    children: [
+                      _buildInfoChip(Icons.timer, tour['duration'] ?? ''),
+                      const SizedBox(width: 12),
+                      _buildInfoChip(Icons.speed, (tour['difficulty'] as String? ?? 'easy').toUpperCase()),
+                      const SizedBox(width: 12),
+                      _buildInfoChip(Icons.group, '${tour['groupSize'] ?? 0} max'),
+                    ],
+                  ),
                   const SizedBox(height: AppTheme.spacingL),
 
-                  // Day-by-day Schedule
+                  // Description
+                  Text('description'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: AppTheme.spacingS),
+                  Text(
+                    tour['description'] ?? '',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.6),
+                  ),
+                  const SizedBox(height: AppTheme.spacingL),
+
+                  // Schedule
                   Text('schedule'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: AppTheme.spacingM),
-                  _buildDayCard(context, 1, 'day1_title'.tr, 'day1_desc'.tr),
-                  _buildDayCard(context, 2, 'day2_title'.tr, 'day2_desc'.tr),
-                  _buildDayCard(context, 3, 'day3_title'.tr, 'day3_desc'.tr),
-                  const SizedBox(height: AppTheme.spacingL),
+                   if (tour['schedule'] != null)
+                    ...(tour['schedule'] as List).map((e) => _buildScheduleItem(context, e)),
+                   const SizedBox(height: AppTheme.spacingL),
 
-                  // Guide Info
-                  Text('your_guide'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: AppTheme.spacingM),
-                  Container(
-                    padding: const EdgeInsets.all(AppTheme.spacingM),
-                    decoration: BoxDecoration(
-                      color: AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  // Tour Guide (if available)
+                  if (tour['guide'] != null) ...[
+                     Text('tour_guide'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                     const SizedBox(height: AppTheme.spacingM),
+                     _buildGuideInfo(context, tour['guide']),
+                     const SizedBox(height: AppTheme.spacingL),
+                  ],
+
+                  // Location Map
+                  if (tour['lat'] != null && tour['lng'] != null) ...[
+                    Text('location'.tr, 
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: AppTheme.spacingM),
+                    LocationViewer(
+                      lat: (tour['lat'] as num).toDouble(),
+                      lng: (tour['lng'] as num).toDouble(),
+                      address: 'Meeting Point',
                     ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: AppColors.primaryBlue.withOpacity(0.2),
-                          child: const Icon(Icons.person, color: AppColors.primaryBlue, size: 30),
-                        ),
-                        const SizedBox(width: AppTheme.spacingM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Nguyễn Minh', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                              Text('guide_exp'.tr, style: Theme.of(context).textTheme.bodySmall),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  ...List.generate(5, (_) => const Icon(Icons.star, size: 14, color: AppColors.accentGold)),
-                                  const SizedBox(width: 4),
-                                  Text('5.0', style: Theme.of(context).textTheme.bodySmall),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    const SizedBox(height: AppTheme.spacingL),
+                  ],
                   const SizedBox(height: 100),
                 ],
               ),
@@ -149,20 +157,40 @@ class TourDetailPage extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('from'.tr, style: Theme.of(context).textTheme.bodySmall),
-                Text('\$200 /${'person'.tr}', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(width: AppTheme.spacingL),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+                onPressed: () {
+                    Get.toNamed(
+                      Routes.bookingCreate,
+                      arguments: {'item': tour, 'type': 'tour'},
+                    );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                ),
                 child: Text('book_now'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+             Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                   final contact = tour['contactInfo'] as Map<String, dynamic>?;
+                   Get.bottomSheet(
+                     ContactBottomSheet(
+                       phoneNumber: contact?['phone'],
+                       email: contact?['email'],
+                       website: contact?['website'],
+                     ),
+                   );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: AppColors.primaryBlue),
+                ),
+                child: Text('contact'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -171,20 +199,12 @@ class TourDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTag(BuildContext context, String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(AppTheme.radiusS)),
-      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
-    );
-  }
-
   Widget _buildInfoCard(BuildContext context, IconData icon, String label, String value) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingS),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        color: AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(AppTheme.radiusS),
       ),
       child: Column(
         children: [
@@ -224,6 +244,91 @@ class TourDetailPage extends StatelessWidget {
           Text(desc, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textMedium)),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.textMedium),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleItem(BuildContext context, Map<String, dynamic> item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 60,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              item['time'] ?? '08:00',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item['title'] ?? '', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(item['activity'] ?? '', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textMedium)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideInfo(BuildContext context, Map<String, dynamic> guide) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundImage: NetworkImage(guide['avatar'] ?? 'https://i.pravatar.cc/150'),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(guide['name'] ?? 'Guide Name', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text('${'languages'.tr}: ${guide['languages'] ?? 'EN/VI'}', style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTag(BuildContext context, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppTheme.radiusS),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
     );
   }
 }

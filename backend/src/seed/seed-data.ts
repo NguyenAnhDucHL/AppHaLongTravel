@@ -23,6 +23,7 @@ const hotels = [
             { type: 'Suite', price: 4500000, capacity: 2, available: 5, description: 'Suite hướng vịnh' },
             { type: 'Family', price: 3500000, capacity: 4, available: 8, description: 'Phòng gia đình' },
         ],
+        contactInfo: { phone: '0203-3842-999', email: 'info@paradise.com', website: 'https://paradise.com' },
     },
     {
         name: 'Novotel Ha Long Bay',
@@ -38,6 +39,7 @@ const hotels = [
             { type: 'Superior', price: 1800000, capacity: 2, available: 15, description: 'Superior view thành phố' },
             { type: 'Deluxe', price: 2200000, capacity: 2, available: 10, description: 'Deluxe view biển' },
         ],
+        contactInfo: { phone: '0203-3848-108', email: 'booking@novotelhalong.com', website: 'https://novotelhalong.com' },
     },
     {
         name: 'Wyndham Legend Halong',
@@ -53,6 +55,7 @@ const hotels = [
             { type: 'Deluxe', price: 3200000, capacity: 2, available: 12, description: 'Deluxe hướng biển' },
             { type: 'Presidential Suite', price: 8000000, capacity: 2, available: 2, description: 'Suite tổng thống' },
         ],
+        contactInfo: { phone: '0203-3636-555', email: 'info@wyndhamhalong.com', website: 'https://wyndhamhalong.com' },
     },
     {
         name: 'FLC Grand Hotel Ha Long',
@@ -68,6 +71,7 @@ const hotels = [
             { type: 'Standard', price: 1500000, capacity: 2, available: 20, description: 'Phòng tiêu chuẩn' },
             { type: 'Deluxe', price: 2000000, capacity: 2, available: 15, description: 'Phòng cao cấp' },
         ],
+        contactInfo: { phone: '0203-3556-888', email: 'res@flchalong.com' },
     },
     {
         name: 'Mường Thanh Luxury Quảng Ninh',
@@ -83,6 +87,7 @@ const hotels = [
             { type: 'Standard', price: 1200000, capacity: 2, available: 25, description: 'Phòng tiêu chuẩn' },
             { type: 'VIP', price: 2500000, capacity: 2, available: 5, description: 'Phòng VIP' },
         ],
+        contactInfo: { phone: '0203-3812-345', email: 'info@muongthanh.com' },
     },
 ];
 
@@ -105,6 +110,7 @@ const cruises = [
         ],
         images: [], included: ['Bữa ăn', 'Kayak', 'Hướng dẫn viên', 'Vé tham quan'],
         excluded: ['Đồ uống', 'Tip', 'Spa'],
+        contactInfo: { phone: '0901-234-567', email: 'sales@ambassadorcruise.com', website: 'https://ambassadorcruise.com' },
     },
     {
         name: 'Paradise Elegance',
@@ -139,6 +145,7 @@ const cruises = [
         ],
         images: [], included: ['Bữa ăn', 'Kayak', 'Xe đưa đón', 'Hồ bơi'],
         excluded: ['Đồ uống cao cấp', 'Spa', 'Tip'],
+        contactInfo: { phone: '0912-345-678', email: 'info@stellaroftheseas.com', website: 'https://stellaroftheseas.com' },
     },
 ];
 
@@ -155,6 +162,7 @@ const tours = [
         ],
         guide: { name: 'Nguyễn Văn Hùng', avatar: '', experience: '10 năm', languages: ['vi', 'en', 'zh'] },
         images: [],
+        contactInfo: { phone: '0987-654-321', email: 'tours@halongtravel.com' },
     },
     {
         name: 'Bái Tử Long Kayaking',
@@ -243,11 +251,72 @@ const restaurants = [
 ];
 
 const transport = [
-    { vehicleType: 'airport_shuttle', capacity: 16, pricePerKm: 15000, available: true, description: 'Xe shuttle sân bay Vân Đồn - Hạ Long' },
-    { vehicleType: 'private_car_4', capacity: 4, pricePerKm: 12000, available: true, description: 'Xe riêng 4 chỗ' },
-    { vehicleType: 'private_car_7', capacity: 7, pricePerKm: 18000, available: true, description: 'Xe riêng 7 chỗ' },
-    { vehicleType: 'motorbike', capacity: 2, pricePerKm: 5000, available: true, description: 'Xe máy tay ga' },
-    { vehicleType: 'speedboat', capacity: 12, pricePerKm: 50000, available: true, description: 'Tàu cao tốc ra đảo' },
+    {
+        name: 'Xe buýt sân bay',
+        type: 'Bus',
+        capacity: 16,
+        price: 150000,
+        currency: 'VND',
+        available: true,
+        status: 'active',
+        rating: 4.5,
+        images: [],
+        description: 'Xe shuttle sân bay Vân Đồn - Hạ Long, đón trả tận nơi.',
+        contactInfo: { phone: '0203-3842-123' }
+    },
+    {
+        name: 'Xe riêng 4 chỗ Vios',
+        type: 'Private Car',
+        capacity: 4,
+        price: 12000, // Per km? Frontend uses fixed price input, but model implies fixed or rate. Let's use fixed base or rate. 
+        // Frontend "Price" usually implies per unit. For transport it's ambiguous. Let's assume standard booking price or base price.
+        currency: 'VND',
+        available: true,
+        status: 'active',
+        rating: 4.8,
+        images: [],
+        description: 'Xe riêng 4 chỗ đời mới, tài xế thân thiện.',
+        contactInfo: { phone: '0905-123-456' }
+    },
+    {
+        name: 'Xe Limousine 9 chỗ',
+        type: 'Limousine',
+        capacity: 9,
+        price: 250000,
+        currency: 'VND',
+        available: true,
+        status: 'active',
+        rating: 4.9,
+        images: [],
+        description: 'Xe Limousine sang trọng, ghế massage.',
+        contactInfo: { phone: '0987-123-123' }
+    },
+    {
+        name: 'Thuê xe máy tay ga',
+        type: 'Motorbike',
+        capacity: 2,
+        price: 150000,
+        currency: 'VND',
+        available: true,
+        status: 'active',
+        rating: 4.2,
+        images: [],
+        description: 'Xe máy tay ga các loại (Airblade, Vision).',
+        contactInfo: { phone: '0912-345-678' }
+    },
+    {
+        name: 'Tàu cao tốc Cô Tô',
+        type: 'Boat',
+        capacity: 50,
+        price: 250000,
+        currency: 'VND',
+        available: true,
+        status: 'active',
+        rating: 4.7,
+        images: [],
+        description: 'Tàu cao tốc đi đảo Cô Tô, xuất phát cảng Cái Rồng.',
+        contactInfo: { phone: '0945-678-901' }
+    },
 ];
 
 export async function seedDatabase(db: admin.firestore.Firestore) {

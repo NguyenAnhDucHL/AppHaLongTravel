@@ -99,21 +99,21 @@ class _ManageCruisesPageState extends State<ManageCruisesPage> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(cruise['name'], style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                    _ratingBadge(cruise['rating']),
+                    Expanded(child: Text(cruise['name'] ?? 'Chưa đặt tên', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                    _ratingBadge((cruise['rating'] ?? 0.0).toDouble()),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(children: [
                   const Icon(Icons.route, size: 14, color: AppColors.textLight), const SizedBox(width: 4),
-                  Text(cruise['route'], style: Theme.of(context).textTheme.bodySmall),
+                  Text(cruise['route'] ?? '', style: Theme.of(context).textTheme.bodySmall),
                 ]),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _infoChip(Icons.door_back_door, '${cruise['cabins']} cabin'),
+                    _infoChip(Icons.door_back_door, '${cruise['cabins'] ?? 0} cabin'),
                     const Spacer(),
-                    Text('${_fmt(cruise['price'])} ₫/người', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 15)),
+                    Text('${_fmt(cruise['price'] ?? 0)} ₫/người', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 15)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -136,7 +136,7 @@ class _ManageCruisesPageState extends State<ManageCruisesPage> {
     );
   }
 
-  Widget _statusBadge(String s) => Container(
+  Widget _statusBadge(String? s) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(color: s == 'active' ? AppColors.success : AppColors.error, borderRadius: BorderRadius.circular(20)),
     child: Text(s == 'active' ? 'Hoạt động' : 'Tạm dừng', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -163,149 +163,74 @@ class _ManageCruisesPageState extends State<ManageCruisesPage> {
   String _fmt(int p) => p.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.');
 
   void _showCruiseForm(BuildContext context, {Map<String, dynamic>? cruise}) {
-    final isEdit = cruise != null;
-    final nameCtrl = TextEditingController(text: isEdit ? cruise['name'] : '');
-    final routeCtrl = TextEditingController(text: isEdit ? cruise['route'] : '');
-    final priceCtrl = TextEditingController(text: isEdit ? cruise['price'].toString() : '');
-    final cabinsCtrl = TextEditingController(text: isEdit ? cruise['cabins'].toString() : '');
-    String duration = isEdit ? cruise['duration'] : '2N1Đ';
-
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          bool isSubmitting = false;
-          File? pickedFile;
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => CruiseForm(
+        cruise: cruise,
+        onSubmit: (data, newImages, existingImages) async {
+          final isEdit = cruise != null;
+          try {
+            List<String> imageUrls = [...existingImages];
+            
+            if (newImages.isNotEmpty) {
+              final newUrls = await StorageUtils.uploadMultipleFiles(newImages, 'cruises');
+              imageUrls.addAll(newUrls);
+            }
 
-          return Container(
-            height: MediaQuery.of(ctx).size.height * 0.9,
-            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-            child: Column(
-              children: [
-                Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-                Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-                  Text(isEdit ? 'Sửa Du thuyền' : 'Thêm Du thuyền', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-                ])),
-                const Divider(height: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      // Image upload
-                      GestureDetector(
-                        onTap: () async {
-                          final file = await StorageUtils.pickImage();
-                          if (file != null) setSheetState(() => pickedFile = file);
-                        },
-                        child: Container(
-                          height: 140, decoration: BoxDecoration(
-                            color: Colors.blue.shade50, 
-                            borderRadius: BorderRadius.circular(16), 
-                            border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3)),
-                            image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
-                          ),
-                          child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.cloud_upload_outlined, size: 36, color: AppColors.primaryBlue),
-                            SizedBox(height: 6),
-                            Text('Tải ảnh du thuyền', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500)),
-                          ])) : null,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _formField('Tên du thuyền *', Icons.sailing, nameCtrl),
-                      const SizedBox(height: 14),
-                      _formField('Tuyến đường *', Icons.route, routeCtrl),
-                      const SizedBox(height: 14),
-                      Row(children: [
-                        Expanded(child: _formField('Giá/người (₫)', Icons.attach_money, priceCtrl, isNumber: true)),
-                        const SizedBox(width: 12),
-                        Expanded(child: _formField('Số cabin', Icons.door_back_door, cabinsCtrl, isNumber: true)),
-                      ]),
-                      const SizedBox(height: 14),
-                      const Text('Thời gian', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 8, children: ['1 ngày', '2N1Đ', '3N2Đ'].map((d) => ChoiceChip(
-                        label: Text(d), selected: duration == d, 
-                        onSelected: (s) { if (s) setSheetState(() => duration = d); },
-                        selectedColor: AppColors.primaryBlue,
-                        labelStyle: TextStyle(color: duration == d ? Colors.white : AppColors.textDark),
-                      )).toList()),
-                      const SizedBox(height: 14),
-                      const Text('Bao gồm', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 8, children: ['Bữa ăn', 'Kayak', 'Vé hang', 'Hướng dẫn', 'Xe đưa đón'].map((s) => FilterChip(
-                        label: Text(s, style: const TextStyle(fontSize: 12)), selected: true, onSelected: (_) {},
-                        selectedColor: AppColors.primaryBlue, checkmarkColor: Colors.white,
-                      )).toList()),
-                      const SizedBox(height: 14),
-                      const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-                      const SizedBox(height: 24),
-                      SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-                        onPressed: isSubmitting ? null : () async {
-                          if (nameCtrl.text.isEmpty || routeCtrl.text.isEmpty) {
-                            _showErrorSnackbar('Vui lòng nhập đầy đủ thông tin');
-                            return;
-                          }
-                          setSheetState(() => isSubmitting = true);
-                          try {
-                            String? imageUrl;
-                            if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'cruises');
+            final cruiseData = {
+              ...data,
+              'images': imageUrls,
+              'rating': isEdit ? cruise['rating'] : 5.0,
+            };
 
-                            final data = {
-                              'name': nameCtrl.text,
-                              'route': routeCtrl.text,
-                              'price': int.tryParse(priceCtrl.text) ?? 0,
-                              'cabins': int.tryParse(cabinsCtrl.text) ?? 0,
-                              'duration': duration,
-                              'status': 'active',
-                              'rating': isEdit ? cruise['rating'] : 5.0,
-                              if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': cruise['images'] ?? [],
-                            };
+            bool success;
+            if (isEdit) {
+              success = await _cruiseService.updateCruise(cruise['id'], cruiseData);
+            } else {
+              success = await _cruiseService.createCruise(cruiseData);
+            }
 
-                            bool success;
-                            if (isEdit) {
-                              success = await _cruiseService.updateCruise(cruise['id'], data);
-                            } else {
-                              success = await _cruiseService.createCruise(data);
-                            }
-
-                            if (success) {
-                              Navigator.pop(ctx);
-                              _fetchCruises();
-                              _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã thêm thành công');
-                            } else {
-                              _showErrorSnackbar('Lỗi hệ thống');
-                            }
-                          } finally {
-                            if (ctx.mounted) setSheetState(() => isSubmitting = false);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                        child: isSubmitting 
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(isEdit ? 'Lưu thay đổi' : 'Thêm du thuyền', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      )),
-                      const SizedBox(height: 24),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+            if (success) {
+              Navigator.pop(ctx);
+              _fetchCruises();
+              _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã thêm thành công');
+            } else {
+              _showErrorSnackbar('Lỗi hệ thống');
+            }
+            return success;
+          } catch (e) {
+            _showErrorSnackbar('Lỗi: $e');
+            return false;
+          }
+        },
       ),
     );
   }
 
-  Widget _formField(String label, IconData icon, TextEditingController ctrl, {bool isNumber = false}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
+  Widget _itineraryTile(String time, String title, String desc) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(8)),
+            child: Text(time, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(desc, style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+          ])),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.edit, size: 18, color: AppColors.textLight)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.delete, size: 18, color: AppColors.error)),
+        ],
+      ),
     );
   }
 
@@ -380,29 +305,374 @@ class _ManageCruisesPageState extends State<ManageCruisesPage> {
   void _showSuccessSnackbar(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating));
   }
+}
 
-  Widget _itineraryTile(String time, String title, String desc) {
+class CruiseForm extends StatefulWidget {
+  final Map<String, dynamic>? cruise;
+  final Future<bool> Function(Map<String, dynamic> data, List<File> newImages, List<String> existingImages) onSubmit;
+
+  const CruiseForm({super.key, this.cruise, required this.onSubmit});
+
+  @override
+  State<CruiseForm> createState() => _CruiseFormState();
+}
+
+class _CruiseFormState extends State<CruiseForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _routeCtrl;
+  late TextEditingController _priceCtrl;
+  late TextEditingController _cabinsCtrl;
+  late TextEditingController _descCtrl;
+  late String _duration;
+  
+  List<File> _newImages = [];
+  List<String> _existingImageUrls = [];
+  bool _isSubmitting = false;
+
+  final List<String> _currencies = ['VND', 'USD', 'CNY'];
+  String _selectedCurrency = 'VND';
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.cruise;
+    final isEdit = c != null;
+    _nameCtrl = TextEditingController(text: isEdit ? c['name'] : '');
+    _routeCtrl = TextEditingController(text: isEdit ? c['route'] : '');
+    _priceCtrl = TextEditingController(text: isEdit ? c['price'].toString() : '');
+    _cabinsCtrl = TextEditingController(text: isEdit ? c['cabins'].toString() : '');
+    _descCtrl = TextEditingController(text: isEdit ? c['description'] ?? '' : '');
+    _duration = isEdit ? c['duration'] : '2N1Đ';
+
+    if (isEdit && c['images'] != null) {
+      _existingImageUrls = List<String>.from(c['images']);
+    }
+    if (isEdit && c['currency'] != null) {
+      _selectedCurrency = c['currency'];
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _routeCtrl.dispose();
+    _priceCtrl.dispose();
+    _cabinsCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(12)),
-      child: Row(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: const BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
         children: [
-          Container(
-            width: 50,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(8)),
-            child: Text(time, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  widget.cruise != null ? 'Sửa Du thuyền' : 'Thêm Du thuyền',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              ],
+            ),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-            Text(desc, style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
-          ])),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.edit, size: 18, color: AppColors.textLight)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.delete, size: 18, color: AppColors.error)),
+          const Divider(height: 1),
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Hình ảnh', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 120,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final files = await StorageUtils.pickMultiImage();
+                              if (files.isNotEmpty) setState(() => _newImages.addAll(files));
+                            },
+                            child: Container(
+                              width: 120,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryBlue.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3)),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate, size: 32, color: AppColors.primaryBlue),
+                                  SizedBox(height: 4),
+                                  Text('Thêm ảnh', style: TextStyle(color: AppColors.primaryBlue, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          ..._existingImageUrls.asMap().entries.map((entry) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(image: NetworkImage(entry.value), fit: BoxFit.cover),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4, right: 16,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _existingImageUrls.removeAt(entry.key)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                          ..._newImages.asMap().entries.map((entry) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(image: FileImage(entry.value), fit: BoxFit.cover),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4, right: 16,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _newImages.removeAt(entry.key)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    _buildTextField(
+                      label: 'Tên du thuyền *', 
+                      controller: _nameCtrl, 
+                      icon: Icons.sailing,
+                      validator: (v) => v?.trim().isEmpty == true ? 'Vui lòng nhập tên' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    _buildTextField(
+                      label: 'Tuyến đường *', 
+                      controller: _routeCtrl, 
+                      icon: Icons.route,
+                       validator: (v) => v?.trim().isEmpty == true ? 'Vui lòng nhập tuyến đường' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: _buildTextField(
+                                  label: 'Giá/người *', 
+                                  controller: _priceCtrl, 
+                                  icon: Icons.attach_money,
+                                  isNumber: true,
+                                  validator: (v) {
+                                    if (v?.isEmpty == true) return 'Nhập giá';
+                                    if (int.tryParse(v!) == null) return 'Phải là số';
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  height: 56, // Match text field height
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.backgroundLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedCurrency,
+                                      isExpanded: true,
+                                      items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                      onChanged: (v) { if(v != null) setState(() => _selectedCurrency = v); },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField(
+                            label: 'Số cabin *', 
+                            controller: _cabinsCtrl, 
+                            icon: Icons.door_back_door,
+                            isNumber: true,
+                            validator: (v) {
+                              if (v?.isEmpty == true) return 'Nhập số cabin';
+                              if (int.tryParse(v!) == null) return 'Phải là số';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    const Text('Thời gian', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8, runSpacing: 8,
+                      children: ['1 ngày', '2N1Đ', '3N2Đ'].map((d) {
+                        final selected = _duration == d;
+                        return ChoiceChip(
+                          label: Text(d, style: TextStyle(color: selected ? Colors.white : AppColors.textDark)),
+                          selected: selected,
+                          onSelected: (s) { if (s) setState(() => _duration = d); },
+                          selectedColor: AppColors.primaryBlue,
+                          backgroundColor: AppColors.backgroundLight,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    const Text('Bao gồm', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8, runSpacing: 8,
+                      children: ['Bữa ăn', 'Kayak', 'Vé hang', 'Hướng dẫn', 'Xe đưa đón'].map((s) => FilterChip(
+                        label: Text(s, style: const TextStyle(fontSize: 12)), 
+                        selected: true, 
+                        onSelected: (_) {},
+                        selectedColor: AppColors.primaryBlue.withOpacity(0.1),
+                        checkmarkColor: AppColors.primaryBlue,
+                        labelStyle: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w500),
+                        backgroundColor: AppColors.backgroundLight,
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      )).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _descCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Nhập mô tả chi tiết...',
+                        filled: true, 
+                        fillColor: AppColors.backgroundLight, 
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    SizedBox(
+                      width: double.infinity, height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: _isSubmitting 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(widget.cruise != null ? 'Lưu thay đổi' : 'Thêm du thuyền', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  Widget _buildTextField({
+    required String label, 
+    required TextEditingController controller, 
+    required IconData icon, 
+    bool isNumber = false,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: Colors.black54),
+        filled: true,
+        fillColor: AppColors.backgroundLight,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error, width: 1)),
+      ),
+    );
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+      
+      final data = {
+        'name': _nameCtrl.text.trim(),
+        'route': _routeCtrl.text.trim(),
+        'price': int.parse(_priceCtrl.text),
+        'currency': _selectedCurrency,
+        'cabins': int.parse(_cabinsCtrl.text),
+        'duration': _duration,
+        'status': 'active',
+        'description': _descCtrl.text.trim(),
+      };
+
+      await widget.onSubmit(data, _newImages, _existingImageUrls);
+      
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 }
+

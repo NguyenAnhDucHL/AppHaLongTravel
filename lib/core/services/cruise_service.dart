@@ -17,6 +17,18 @@ class CruiseService extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>?> getCruise(String id) async {
+    try {
+      final res = await _api.get('${ApiConfig.cruises}/$id');
+      if (res.data['success'] == true) {
+        return res.data['data'] as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<bool> createCruise(Map<String, dynamic> data) async {
     try {
       final res = await _api.post(ApiConfig.cruises, data: data);

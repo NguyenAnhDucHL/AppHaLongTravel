@@ -18,11 +18,25 @@ class HotelService extends GetxService {
     }
   }
 
+  Future<Map<String, dynamic>?> getHotel(String id) async {
+    try {
+      final res = await _api.get('${ApiConfig.hotels}/$id');
+      if (res.data['success'] == true) {
+        return res.data['data'] as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      print('Error getting hotel: $e');
+      return null;
+    }
+  }
+
   Future<bool> createHotel(Map<String, dynamic> data) async {
     try {
       final res = await _api.post(ApiConfig.hotels, data: data);
       return res.data['success'] == true;
     } catch (e) {
+      print('Error creating hotel: $e');
       return false;
     }
   }
@@ -32,6 +46,7 @@ class HotelService extends GetxService {
       final res = await _api.put('${ApiConfig.hotels}/$id', data: data);
       return res.data['success'] == true;
     } catch (e) {
+      print('Error updating hotel: $e');
       return false;
     }
   }
@@ -41,6 +56,7 @@ class HotelService extends GetxService {
       final res = await _api.delete('${ApiConfig.hotels}/$id');
       return res.data['success'] == true;
     } catch (e) {
+      print('Error deleting hotel: $e');
       return false;
     }
   }

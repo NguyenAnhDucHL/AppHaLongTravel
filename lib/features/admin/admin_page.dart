@@ -226,12 +226,12 @@ class _AdminPageState extends State<AdminPage> {
   // ===== MANAGEMENT GRID =====
   Widget _buildManagementGrid(BuildContext context) {
     final items = [
-      _MenuItem(Icons.hotel, 'Khách sạn', '5 đăng ký', AppColors.primaryBlue, const ManageHotelsPage()),
-      _MenuItem(Icons.sailing, 'Du thuyền', '3 đăng ký', Colors.cyan, const ManageCruisesPage()),
-      _MenuItem(Icons.terrain, 'Tour du lịch', '4 tour', AppColors.accentOrange, const ManageToursPage()),
-      _MenuItem(Icons.restaurant, 'Nhà hàng', '3 đăng ký', AppColors.accentGold, const ManageRestaurantsPage()),
+      _MenuItem(Icons.hotel, 'Khách sạn', '${_stats['hotels'] ?? 0} đăng ký', AppColors.primaryBlue, const ManageHotelsPage()),
+      _MenuItem(Icons.sailing, 'Du thuyền', '${_stats['cruises'] ?? 0} đăng ký', Colors.cyan, const ManageCruisesPage()),
+      _MenuItem(Icons.terrain, 'Tour du lịch', '${_stats['tours'] ?? 0} tour', AppColors.accentOrange, const ManageToursPage()),
+      _MenuItem(Icons.restaurant, 'Nhà hàng', '${_stats['restaurants'] ?? 0} đăng ký', AppColors.accentGold, const ManageRestaurantsPage()),
       _MenuItem(Icons.directions_bus, 'Phương tiện', '4 phương tiện', Colors.indigo, const ManageTransportPage()),
-      _MenuItem(Icons.rate_review, 'Đánh giá', '2 chờ duyệt', const Color(0xFF9C27B0), const ManageReviewsPage()),
+      _MenuItem(Icons.rate_review, 'Đánh giá', '${_stats['reviews'] ?? 0} đánh giá', const Color(0xFF9C27B0), const ManageReviewsPage()),
       _MenuItem(Icons.local_offer, 'Ưu đãi & Điểm đến', '3 đang chạy', AppColors.accentCoral, const ManageDealsPage()),
     ];
 

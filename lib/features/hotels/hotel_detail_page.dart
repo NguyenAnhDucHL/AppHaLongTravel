@@ -2,31 +2,108 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:quang_ninh_travel/core/services/hotel_service.dart';
+import 'package:quang_ninh_travel/core/services/booking_service.dart';
+import 'package:quang_ninh_travel/core/services/favorite_service.dart';
+import 'package:quang_ninh_travel/shared/widgets/contact_bottom_sheet.dart';
+import 'package:quang_ninh_travel/shared/widgets/location_viewer.dart';
+import 'package:quang_ninh_travel/app/routes/app_pages.dart'; // Ensure Routes is imported
 
-class HotelDetailPage extends StatelessWidget {
+class HotelDetailPage extends StatefulWidget {
   const HotelDetailPage({super.key});
 
   @override
+  State<HotelDetailPage> createState() => _HotelDetailPageState();
+}
+
+class _HotelDetailPageState extends State<HotelDetailPage> {
+  final _hotelService = Get.find<HotelService>();
+  final _bookingService = Get.find<BookingService>();
+  final _favoriteService = Get.find<FavoriteService>();
+
+  late String _hotelId;
+  Map<String, dynamic>? _hotel;
+  bool _isLoading = true;
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hotelId = Get.arguments as String? ?? '';
+    if (_hotelId.isNotEmpty) {
+      _fetchHotelDetails();
+    } else {
+      Get.back(); // Go back if no ID
+    }
+  }
+
+  Future<void> _fetchHotelDetails() async {
+    try {
+      final data = await _hotelService.getHotel(_hotelId);
+      if (mounted) {
+        setState(() {
+          _hotel = data;
+          _isLoading = false;
+          _isFavorite = _favoriteService.isFavorite(_hotelId);
+        });
+      }
+    } catch (e) {
+      print('Error fetching hotel details: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final success = await _favoriteService.toggleFavorite(_hotelId, 'hotel');
+    if (success && mounted) {
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_hotel == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Hotel not found')),
+      );
+    }
+
+    final hotel = _hotel!;
+    final images = hotel['images'] as List?;
+    final imageUrl = (images != null && images.isNotEmpty) ? images[0] : null;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           // Collapsible App Bar with Image
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                '${'hotel_name'.tr} Premium',
-                style: const TextStyle(fontSize: 16),
+                hotel['name'] ?? 'Hotel Details',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  shadows: [Shadow(color: Colors.black45, blurRadius: 2)],
+                ),
               ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    color: AppColors.primaryLight.withOpacity(0.3),
-                    child: const Icon(Icons.hotel, size: 80, color: Colors.white54),
-                  ),
+                  imageUrl != null
+                      ? Image.network(imageUrl, fit: BoxFit.cover)
+                      : Container(
+                          color: AppColors.primaryLight.withOpacity(0.3),
+                          child: const Icon(Icons.hotel, size: 80, color: Colors.white54),
+                        ),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -41,8 +118,9 @@ class HotelDetailPage extends StatelessWidget {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.favorite_border, color: Colors.white),
-                onPressed: () {},
+                icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite ? AppColors.error : Colors.white),
+                onPressed: _toggleFavorite,
               ),
               IconButton(
                 icon: const Icon(Icons.share, color: Colors.white),
@@ -62,14 +140,15 @@ class HotelDetailPage extends StatelessWidget {
                     children: [
                       ...List.generate(5, (_) => const Icon(Icons.star, size: 18, color: AppColors.accentGold)),
                       const SizedBox(width: 8),
-                      Text('4.8 (326 ${'reviews'.tr})', style: Theme.of(context).textTheme.bodySmall),
+                      Text('${hotel['rating'] ?? 0} (${hotel['reviewCount'] ?? 0} ${'reviews'.tr})',
+                          style: Theme.of(context).textTheme.bodySmall),
                       const Spacer(),
                       Text(
-                        '\$120',
+                        '\$${hotel['pricePerNight'] ?? 0}',
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: AppColors.primaryBlue,
-                          fontWeight: FontWeight.bold,
-                        ),
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
                       Text('per_night'.tr, style: Theme.of(context).textTheme.bodySmall),
                     ],
@@ -79,55 +158,66 @@ class HotelDetailPage extends StatelessWidget {
                     children: [
                       const Icon(Icons.location_on, size: 16, color: AppColors.textLight),
                       const SizedBox(width: 4),
-                      Text('hotel_location'.tr, style: Theme.of(context).textTheme.bodyMedium),
+                      Expanded(
+                        child: Text(
+                          hotel['address'] ?? 'No address',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppTheme.spacingL),
 
                   // Amenities
-                  Text('amenities'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  Text('amenities'.tr,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: AppTheme.spacingM),
                   Wrap(
                     spacing: AppTheme.spacingM,
                     runSpacing: AppTheme.spacingM,
                     children: [
-                      _buildAmenity(context, Icons.wifi, 'WiFi'),
-                      _buildAmenity(context, Icons.pool, 'pool'.tr),
-                      _buildAmenity(context, Icons.restaurant, 'restaurant'.tr),
-                      _buildAmenity(context, Icons.spa, 'Spa'),
-                      _buildAmenity(context, Icons.local_parking, 'parking'.tr),
-                      _buildAmenity(context, Icons.fitness_center, 'gym'.tr),
+                      if (hotel['amenities'] != null)
+                        ...(hotel['amenities'] as List).map((e) => _buildAmenity(context, Icons.check_circle, e.toString())),
                     ],
                   ),
                   const SizedBox(height: AppTheme.spacingL),
 
                   // Description
-                  Text('description'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  Text('description'.tr,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: AppTheme.spacingS),
                   Text(
-                    'hotel_desc'.tr,
+                    hotel['description'] ?? '',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textMedium,
-                      height: 1.6,
-                    ),
+                          color: AppColors.textMedium,
+                          height: 1.6,
+                        ),
                   ),
                   const SizedBox(height: AppTheme.spacingL),
+                  
+                  // Location Map
+                  if (hotel['lat'] != null && hotel['lng'] != null) ...[
+                    Text('location'.tr, // Ensure key exists or use 'Location'
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: AppTheme.spacingM),
+                    LocationViewer(
+                      lat: (hotel['lat'] as num).toDouble(),
+                      lng: (hotel['lng'] as num).toDouble(),
+                      address: hotel['address'],
+                    ),
+                    const SizedBox(height: AppTheme.spacingL),
+                  ],
 
-                  // Rooms
-                  Text('available_rooms'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: AppTheme.spacingM),
-                  ...List.generate(3, (i) => _buildRoomCard(context, i)),
-                  const SizedBox(height: AppTheme.spacingL),
-
-                  // Reviews
+                  // Reviews (Placeholder for now, could be fetched)
                   Row(
                     children: [
-                      Text('reviews'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('reviews'.tr,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const Spacer(),
                       TextButton(onPressed: () {}, child: Text('view_all'.tr)),
                     ],
                   ),
-                  ...List.generate(2, (i) => _buildReviewCard(context, i)),
+                  // ...List.generate(2, (i) => _buildReviewCard(context, i)),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -143,30 +233,40 @@ class HotelDetailPage extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('from'.tr, style: Theme.of(context).textTheme.bodySmall),
-                Text(
-                  '\$120 ${'per_night'.tr}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.primaryBlue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: AppTheme.spacingL),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                   Get.toNamed(
+                     Routes.bookingCreate,
+                     arguments: {'item': hotel, 'type': 'hotel'},
+                   ); 
+                },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: AppColors.primaryBlue,
                   foregroundColor: Colors.white,
                 ),
                 child: Text('book_now'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                   final contact = hotel['contactInfo'] as Map<String, dynamic>?;
+                   Get.bottomSheet(
+                     ContactBottomSheet(
+                       phoneNumber: contact?['phone'],
+                       email: contact?['email'],
+                       website: contact?['website'],
+                     ),
+                   );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: const BorderSide(color: AppColors.primaryBlue),
+                ),
+                child: Text('contact'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -191,89 +291,5 @@ class HotelDetailPage extends StatelessWidget {
       ],
     );
   }
-
-  Widget _buildRoomCard(BuildContext context, int index) {
-    final rooms = ['Standard', 'Deluxe', 'Suite'];
-    final prices = [80, 120, 200];
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
-      padding: const EdgeInsets.all(AppTheme.spacingM),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 80, height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
-            ),
-            child: const Icon(Icons.bed, color: AppColors.primaryLight),
-          ),
-          const SizedBox(width: AppTheme.spacingM),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(rooms[index], style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text('2 ${'guests'.tr} • 1 ${'bed'.tr}', style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('\$${prices[index]}', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
-              Text('per_night'.tr, style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewCard(BuildContext context, int index) {
-    final names = ['Nguyễn Văn A', 'John Smith'];
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
-      padding: const EdgeInsets.all(AppTheme.spacingM),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.primaryBlue.withOpacity(0.2),
-                child: Text(names[index][0], style: const TextStyle(color: AppColors.primaryBlue)),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(names[index], style: Theme.of(context).textTheme.titleSmall),
-                    Row(children: List.generate(5, (_) => const Icon(Icons.star, size: 14, color: AppColors.accentGold))),
-                  ],
-                ),
-              ),
-              Text('2 ${'days'.tr} ${'ago'.tr}', style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'review_text'.tr,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textMedium),
-          ),
-        ],
-      ),
-    );
-  }
 }
+

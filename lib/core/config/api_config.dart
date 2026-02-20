@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseUrl = 'http://172.20.1.255:5001/quang-ninh-travel/us-central1/api/api'; 
+  static const String baseUrl = 'http://192.168.1.24:5001/quangninhtravel-ca9a0/us-central1/api/api'; 
   
   // Endpoints
   static const String hotels = '/hotels';
@@ -13,4 +13,6 @@ class ApiConfig {
   static const String adminUsers = '/admin/users';
   static const String adminStats = '/admin/stats';
   static const String adminReviews = '/admin/reviews';
+  static const String bookings = '/bookings';
+  static const String favorites = '/favorites';
 }

@@ -71,58 +71,88 @@ class _ManageToursPageState extends State<ManageToursPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [diffColor.withOpacity(0.2), diffColor.withOpacity(0.05)]),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.terrain, size: 28, color: diffColor),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(tour['name'] as String, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Row(children: [
+            SizedBox(
+              height: 140,
+              child: Stack(
+                children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: diffColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                    child: Text(diffLabels[tour['difficulty']]!, style: TextStyle(color: diffColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      color: diffColor.withOpacity(0.1),
+                      image: (tour['images'] as List?)?.isNotEmpty == true
+                          ? DecorationImage(
+                              image: NetworkImage((tour['images'] as List)[0]),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: (tour['images'] as List?)?.isEmpty == true
+                        ? Center(child: Icon(Icons.terrain, size: 40, color: diffColor))
+                        : null,
                   ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.schedule, size: 13, color: AppColors.textLight), const SizedBox(width: 3),
-                  Text(tour['duration'] as String, style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
-                  const SizedBox(width: 8),
-                  Icon(Icons.group, size: 13, color: AppColors.textLight), const SizedBox(width: 3),
-                  Text('Max ${tour['groupSize']}', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
-                ]),
-              ])),
-              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.accentGold.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.star, size: 14, color: AppColors.accentGold), const SizedBox(width: 2),
-                    Text('${tour['rating'] ?? 5.0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Positioned(
+                    top: 8, right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: diffColor.withOpacity(0.9), borderRadius: BorderRadius.circular(12)),
+                      child: Text(diffLabels[tour['difficulty']] ?? 'Vừa', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 8, left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.schedule, size: 10, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(tour['duration'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Expanded(child: Text(tour['name'] ?? 'Chưa đặt tên', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: AppColors.accentGold.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.star, size: 12, color: AppColors.accentGold),
+                        Text(' ${tour['rating'] ?? 5.0}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      ]),
+                    ),
                   ]),
-                ),
-                const SizedBox(height: 4),
-                Text('${tour['bookings']} đặt', style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
-              ]),
-            ]),
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(children: [
-              Text('${_fmt(tour['price'] as int)} ₫/người', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 15)),
-              const Spacer(),
-              _iconBtn(Icons.edit, AppColors.primaryBlue, () => _showTourForm(context, tour: tour)),
-              const SizedBox(width: 8),
-              _iconBtn(Icons.schedule, AppColors.accentOrange, () => _showScheduleEditor(context, tour)),
-              const SizedBox(width: 8),
-              _iconBtn(Icons.delete_outline, AppColors.error, () => _showDeleteConfirm(context, tour)),
-            ]),
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    Icon(Icons.group, size: 13, color: AppColors.textLight), const SizedBox(width: 4),
+                    Text('Max ${tour['groupSize'] ?? 0} người', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                    const SizedBox(width: 12),
+                    Icon(Icons.confirmation_number, size: 13, color: AppColors.textLight), const SizedBox(width: 4),
+                    Text('${tour['bookings'] ?? 0} đã đặt', style: const TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  ]),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Text('${_fmt(tour['price'] ?? 0)} ₫/người', style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 14)),
+                    const Spacer(),
+                    _iconBtn(Icons.edit, AppColors.primaryBlue, () => _showTourForm(context, tour: tour)),
+                    const SizedBox(width: 8),
+                    _iconBtn(Icons.schedule, AppColors.accentOrange, () => _showScheduleEditor(context, tour)),
+                    const SizedBox(width: 8),
+                    _iconBtn(Icons.delete_outline, AppColors.error, () => _showDeleteConfirm(context, tour)),
+                  ]),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -144,136 +174,50 @@ class _ManageToursPageState extends State<ManageToursPage> {
   String _fmt(int p) => p.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]}.');
 
   void _showTourForm(BuildContext context, {Map<String, dynamic>? tour}) {
-    final isEdit = tour != null;
-    final nameCtrl = TextEditingController(text: isEdit ? tour['name'] : '');
-    final priceCtrl = TextEditingController(text: isEdit ? tour['price'].toString() : '');
-    final groupSizeCtrl = TextEditingController(text: isEdit ? tour['groupSize'].toString() : '');
-    final durationCtrl = TextEditingController(text: isEdit ? tour['duration'] : '');
-    String difficulty = isEdit ? tour['difficulty'] : 'moderate';
-
     showModalBottomSheet(
-      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) {
-          bool isSubmitting = false;
-          File? pickedFile;
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => TourForm(
+        tour: tour,
+        onSubmit: (data, newImages, existingImages) async {
+          final isEdit = tour != null;
+          try {
+            List<String> imageUrls = [...existingImages];
+            
+            if (newImages.isNotEmpty) {
+              final newUrls = await StorageUtils.uploadMultipleFiles(newImages, 'tours');
+              imageUrls.addAll(newUrls);
+            }
 
-          return Container(
-            height: MediaQuery.of(ctx).size.height * 0.9,
-            decoration: const BoxDecoration(color: AppColors.backgroundWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-            child: Column(children: [
-              Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-                Text(isEdit ? 'Sửa Tour' : 'Tạo Tour mới', style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                const Spacer(), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
-              ])),
-              const Divider(height: 1),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final file = await StorageUtils.pickImage();
-                        if (file != null) setSheetState(() => pickedFile = file);
-                      },
-                      child: Container(
-                        height: 130, decoration: BoxDecoration(
-                          color: AppColors.accentOrange.withOpacity(0.05), 
-                          borderRadius: BorderRadius.circular(16), 
-                          border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
-                          image: pickedFile != null ? DecorationImage(image: FileImage(pickedFile!), fit: BoxFit.cover) : null,
-                        ),
-                        child: pickedFile == null ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.add_photo_alternate, size: 36, color: AppColors.accentOrange),
-                          SizedBox(height: 6), Text('Tải ảnh tour', style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w500)),
-                        ])) : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _field('Tên tour *', Icons.tour, nameCtrl),
-                    const SizedBox(height: 14),
-                    Row(children: [
-                      Expanded(child: _field('Giá/người (₫)', Icons.attach_money, priceCtrl, isNumber: true)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _field('Nhóm tối đa', Icons.group, groupSizeCtrl, isNumber: true)),
-                    ]),
-                    const SizedBox(height: 14),
-                    _field('Thời lượng (vd: 8 tiếng, 2N1Đ)', Icons.schedule, durationCtrl),
-                    const SizedBox(height: 14),
-                    const Text('Độ khó', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Wrap(spacing: 8, children: [
-                      ChoiceChip(label: const Text('🟢 Dễ'), selected: difficulty == 'easy', onSelected: (s) { if(s) setSheetState(() => difficulty = 'easy'); }),
-                      ChoiceChip(label: const Text('🟡 Vừa'), selected: difficulty == 'moderate', onSelected: (s) { if(s) setSheetState(() => difficulty = 'moderate'); }, selectedColor: AppColors.accentOrange),
-                      ChoiceChip(label: const Text('🔴 Khó'), selected: difficulty == 'hard', onSelected: (s) { if(s) setSheetState(() => difficulty = 'hard'); }, selectedColor: AppColors.error),
-                    ]),
-                    const SizedBox(height: 14),
-                    const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    TextField(maxLines: 3, decoration: InputDecoration(hintText: 'Nhập mô tả...', filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
-                    const SizedBox(height: 24),
-                    SizedBox(width: double.infinity, height: 50, child: ElevatedButton(
-                      onPressed: isSubmitting ? null : () async {
-                        if (nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
-                          _showErrorSnackbar('Vui lòng nhập đầy đủ thông tin');
-                          return;
-                        }
-                        setSheetState(() => isSubmitting = true);
-                        try {
-                          String? imageUrl;
-                          if (pickedFile != null) imageUrl = await StorageUtils.uploadFile(pickedFile!, 'tours');
+            final tourData = {
+              ...data,
+              'images': imageUrls,
+              'status': 'active',
+              'rating': isEdit ? tour['rating'] : 5.0,
+            };
 
-                          final data = {
-                            'name': nameCtrl.text,
-                            'price': int.tryParse(priceCtrl.text) ?? 0,
-                            'groupSize': int.tryParse(groupSizeCtrl.text) ?? 15,
-                            'duration': durationCtrl.text,
-                            'difficulty': difficulty,
-                            'status': 'active',
-                            'rating': isEdit ? tour['rating'] : 5.0,
-                            if (imageUrl != null) 'images': [imageUrl] else if (isEdit) 'images': tour['images'] ?? [],
-                          };
+            bool success;
+            if (isEdit) {
+              success = await _tourService.updateTour(tour['id'], tourData);
+            } else {
+              success = await _tourService.createTour(tourData);
+            }
 
-                          bool success;
-                          if (isEdit) {
-                            success = await _tourService.updateTour(tour['id'], data);
-                          } else {
-                            success = await _tourService.createTour(data);
-                          }
-
-                          if (success) {
-                            Navigator.pop(ctx);
-                            _fetchTours();
-                            _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã tạo tour');
-                          } else {
-                            _showErrorSnackbar('Lỗi hệ thống');
-                          }
-                        } finally {
-                          if (ctx.mounted) setSheetState(() => isSubmitting = false);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                      child: isSubmitting 
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text(isEdit ? 'Lưu thay đổi' : 'Tạo tour', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    )),
-                    const SizedBox(height: 24),
-                  ]),
-                ),
-              ),
-            ]),
-          );
-        }
+            if (success) {
+              Navigator.pop(ctx);
+              _fetchTours();
+              _showSuccessSnackbar(isEdit ? 'Đã cập nhật' : 'Đã tạo tour');
+            } else {
+              _showErrorSnackbar('Lỗi hệ thống');
+            }
+            return success;
+          } catch (e) {
+            _showErrorSnackbar('Lỗi: $e');
+            return false;
+          }
+        },
       ),
-    );
-  }
-
-  Widget _field(String label, IconData icon, TextEditingController ctrl, {bool isNumber = false}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, size: 20), filled: true, fillColor: AppColors.backgroundLight, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
     );
   }
 
@@ -357,3 +301,368 @@ class _ManageToursPageState extends State<ManageToursPage> {
     );
   }
 }
+
+class TourForm extends StatefulWidget {
+  final Map<String, dynamic>? tour;
+  final Future<bool> Function(Map<String, dynamic> data, List<File> newImages, List<String> existingImages) onSubmit;
+
+  const TourForm({super.key, this.tour, required this.onSubmit});
+
+  @override
+  State<TourForm> createState() => _TourFormState();
+}
+
+class _TourFormState extends State<TourForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _priceCtrl;
+  late TextEditingController _groupSizeCtrl;
+  late TextEditingController _durationCtrl;
+  late TextEditingController _descCtrl;
+  late String _difficulty;
+
+  List<File> _newImages = [];
+  List<String> _existingImageUrls = [];
+  bool _isSubmitting = false;
+
+  final List<String> _currencies = ['VND', 'USD', 'CNY'];
+  String _selectedCurrency = 'VND';
+
+  @override
+  void initState() {
+    super.initState();
+    final t = widget.tour;
+    final isEdit = t != null;
+    _nameCtrl = TextEditingController(text: isEdit ? t['name'] : '');
+    _priceCtrl = TextEditingController(text: isEdit ? t['price'].toString() : '');
+    _groupSizeCtrl = TextEditingController(text: isEdit ? t['groupSize'].toString() : '');
+    _durationCtrl = TextEditingController(text: isEdit ? t['duration'] : '');
+    _descCtrl = TextEditingController(text: isEdit ? t['description'] ?? '' : '');
+    _difficulty = isEdit ? t['difficulty'] : 'moderate';
+
+    if (isEdit && t['images'] != null) {
+      _existingImageUrls = List<String>.from(t['images']);
+    }
+    if (isEdit && t['currency'] != null) {
+      _selectedCurrency = t['currency'];
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _priceCtrl.dispose();
+    _groupSizeCtrl.dispose();
+    _durationCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: const BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  widget.tour != null ? 'Sửa Tour' : 'Tạo Tour mới',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Hình ảnh', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 120,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final files = await StorageUtils.pickMultiImage();
+                              if (files.isNotEmpty) setState(() => _newImages.addAll(files));
+                            },
+                            child: Container(
+                              width: 120,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentOrange.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_photo_alternate, size: 32, color: AppColors.accentOrange),
+                                  SizedBox(height: 4),
+                                  Text('Thêm ảnh', style: TextStyle(color: AppColors.accentOrange, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ),
+                          ..._existingImageUrls.asMap().entries.map((entry) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(image: NetworkImage(entry.value), fit: BoxFit.cover),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4, right: 16,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _existingImageUrls.removeAt(entry.key)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                          ..._newImages.asMap().entries.map((entry) {
+                            return Stack(
+                              children: [
+                                Container(
+                                  width: 120,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(image: FileImage(entry.value), fit: BoxFit.cover),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 4, right: 16,
+                                  child: GestureDetector(
+                                    onTap: () => setState(() => _newImages.removeAt(entry.key)),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                      child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    _buildTextField(
+                      label: 'Tên tour *', 
+                      controller: _nameCtrl, 
+                      icon: Icons.tour,
+                      validator: (v) => v?.trim().isEmpty == true ? 'Vui lòng nhập tên tour' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: _buildTextField(
+                                  label: 'Giá *', 
+                                  controller: _priceCtrl, 
+                                  icon: Icons.attach_money,
+                                  isNumber: true,
+                                  validator: (v) {
+                                    if (v?.isEmpty == true) return 'Nhập giá';
+                                    if (int.tryParse(v!) == null) return 'Phải là số';
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  height: 56, // Match text field height
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.backgroundLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      value: _selectedCurrency,
+                                      isExpanded: true,
+                                      items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                      onChanged: (v) { if(v != null) setState(() => _selectedCurrency = v); },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField(
+                            label: 'Nhóm tối đa *', 
+                            controller: _groupSizeCtrl, 
+                            icon: Icons.group,
+                            isNumber: true,
+                            validator: (v) {
+                              if (v?.isEmpty == true) return 'Nhập số lượng';
+                              if (int.tryParse(v!) == null) return 'Phải là số';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    _buildTextField(
+                      label: 'Thời lượng (vd: 8 tiếng, 2N1Đ) *', 
+                      controller: _durationCtrl, 
+                      icon: Icons.schedule,
+                      validator: (v) => v?.trim().isEmpty == true ? 'Vui lòng nhập thời lượng' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    const Text('Độ khó', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('🟢 Dễ'), 
+                          selected: _difficulty == 'easy', 
+                          onSelected: (s) { if(s) setState(() => _difficulty = 'easy'); },
+                          selectedColor: AppColors.success.withOpacity(0.2),
+                          backgroundColor: AppColors.backgroundLight,
+                        ),
+                        ChoiceChip(
+                          label: const Text('🟡 Vừa'), 
+                          selected: _difficulty == 'moderate', 
+                          onSelected: (s) { if(s) setState(() => _difficulty = 'moderate'); },
+                          selectedColor: AppColors.accentOrange.withOpacity(0.2),
+                          backgroundColor: AppColors.backgroundLight,
+                        ),
+                        ChoiceChip(
+                          label: const Text('🔴 Khó'), 
+                          selected: _difficulty == 'hard', 
+                          onSelected: (s) { if(s) setState(() => _difficulty = 'hard'); },
+                          selectedColor: AppColors.error.withOpacity(0.2),
+                          backgroundColor: AppColors.backgroundLight,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    const Text('Mô tả', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _descCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Nhập mô tả chi tiết...',
+                        filled: true, 
+                        fillColor: AppColors.backgroundLight, 
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    SizedBox(
+                      width: double.infinity, height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: _isSubmitting 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(widget.tour != null ? 'Lưu thay đổi' : 'Tạo tour', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label, 
+    required TextEditingController controller, 
+    required IconData icon, 
+    bool isNumber = false,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: Colors.black54),
+        filled: true,
+        fillColor: AppColors.backgroundLight,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accentOrange, width: 1.5)),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error, width: 1)),
+      ),
+    );
+  }
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
+      
+      final data = {
+        'name': _nameCtrl.text.trim(),
+        'price': int.parse(_priceCtrl.text),
+        'currency': _selectedCurrency,
+        'groupSize': int.parse(_groupSizeCtrl.text),
+        'duration': _durationCtrl.text.trim(),
+        'difficulty': _difficulty,
+        'description': _descCtrl.text.trim(),
+      };
+
+      await widget.onSubmit(data, _newImages, _existingImageUrls);
+      
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+}
+
+

@@ -14,11 +14,41 @@ import 'package:quang_ninh_travel/core/services/restaurant_service.dart';
 import 'package:quang_ninh_travel/core/services/transport_service.dart';
 import 'package:quang_ninh_travel/core/services/admin_service.dart';
 
+import 'package:quang_ninh_travel/core/services/booking_service.dart';
+import 'package:quang_ninh_travel/core/services/favorite_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services
   await Firebase.initializeApp();
+  
+  // Use Storage Emulator
+  try {
+    await FirebaseStorage.instance.useStorageEmulator('192.168.1.24', 9199);
+    print('Connected to Storage Emulator');
+  } catch (e) {
+    print('Error connection to Storage Emulator: $e');
+  }
+
+  // Use Auth Emulator
+  try {
+    await FirebaseAuth.instance.useAuthEmulator('192.168.1.24', 9099);
+    print('Connected to Auth Emulator');
+  } catch (e) {
+    print('Error connection to Auth Emulator: $e');
+  }
+
+  // Use Firestore Emulator
+  try {
+    FirebaseFirestore.instance.useFirestoreEmulator('192.168.1.24', 8080);
+    print('Connected to Firestore Emulator');
+  } catch (e) {
+    print('Error connection to Firestore Emulator: $e');
+  }
 
   final languageService = LanguageService();
   await languageService.init();
@@ -39,6 +69,8 @@ void main() async {
   Get.put(RestaurantService());
   Get.put(TransportService());
   Get.put(AdminService());
+  Get.put(BookingService());
+  Get.put(FavoriteService());
   
   runApp(const QuangNinhTravelApp());
 }

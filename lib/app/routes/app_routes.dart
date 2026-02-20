@@ -21,6 +21,7 @@ class Routes {
   // Transport
   static const String transport = '/transport';
   static const String transportBooking = '/transport-booking';
+  static const String transportDetail = '/transport-detail';
   
   // Restaurants
   static const String restaurants = '/restaurants';
@@ -36,6 +37,7 @@ class Routes {
   
   // Booking
   static const String bookings = '/bookings';
+  static const String bookingCreate = '/booking-create';
   static const String bookingDetail = '/booking-detail';
   static const String checkout = '/checkout';
   

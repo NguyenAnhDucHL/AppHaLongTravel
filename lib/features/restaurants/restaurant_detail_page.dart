@@ -2,38 +2,126 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:quang_ninh_travel/app/themes/app_colors.dart';
 import 'package:quang_ninh_travel/app/themes/app_theme.dart';
+import 'package:quang_ninh_travel/core/services/restaurant_service.dart';
+import 'package:quang_ninh_travel/core/services/favorite_service.dart';
+import 'package:quang_ninh_travel/shared/widgets/location_viewer.dart';
+import 'package:quang_ninh_travel/shared/widgets/contact_bottom_sheet.dart';
+// import 'package:quang_ninh_travel/app/routes/app_pages.dart'; // No booking for restaurant yet, maybe reservation later
 
-class RestaurantDetailPage extends StatelessWidget {
+class RestaurantDetailPage extends StatefulWidget {
   const RestaurantDetailPage({super.key});
 
   @override
+  State<RestaurantDetailPage> createState() => _RestaurantDetailPageState();
+}
+
+class _RestaurantDetailPageState extends State<RestaurantDetailPage> {
+  final _restaurantService = Get.find<RestaurantService>();
+  final _favoriteService = Get.find<FavoriteService>();
+
+  late String _restaurantId;
+  Map<String, dynamic>? _restaurant;
+  bool _isLoading = true;
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restaurantId = Get.arguments as String? ?? '';
+    if (_restaurantId.isNotEmpty) {
+      _fetchRestaurantDetails();
+    } else {
+      Get.back();
+    }
+  }
+
+  Future<void> _fetchRestaurantDetails() async {
+    try {
+      final data = await _restaurantService.getRestaurant(_restaurantId);
+       if (mounted) {
+        setState(() {
+          _restaurant = data;
+          _isLoading = false;
+          _isFavorite = _favoriteService.isFavorite(_restaurantId);
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final success = await _favoriteService.toggleFavorite(_restaurantId, 'restaurant');
+    if (success && mounted) {
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_restaurant == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Restaurant not found')),
+      );
+    }
+
+    final restaurant = _restaurant!;
+    final images = restaurant['images'] as List?;
+    final imageUrl = (images != null && images.isNotEmpty) ? images[0] : null;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 250,
+            expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text('${'restaurant'.tr} Phố Biển', style: const TextStyle(fontSize: 16)),
+              title: Text(
+                restaurant['name'] ?? 'Restaurant Details',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  shadows: [Shadow(color: Colors.black45, blurRadius: 2)],
+                ),
+              ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    color: AppColors.accentGold.withOpacity(0.2),
-                    child: const Icon(Icons.restaurant, size: 80, color: Colors.white54),
-                  ),
+                   imageUrl != null
+                      ? Image.network(imageUrl, fit: BoxFit.cover)
+                      : Container(
+                          color: AppColors.primaryLight.withOpacity(0.3),
+                          child: const Icon(Icons.restaurant, size: 80, color: Colors.white54),
+                        ),
                   Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: AppColors.overlayGradient),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: AppColors.overlayGradient,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             actions: [
-              IconButton(icon: const Icon(Icons.favorite_border, color: Colors.white), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.share, color: Colors.white), onPressed: () {}),
+               IconButton(
+                icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite ? AppColors.error : Colors.white),
+                onPressed: _toggleFavorite,
+              ),
+              IconButton(
+                icon: const Icon(Icons.share, color: Colors.white),
+                onPressed: () {},
+              ),
             ],
           ),
           SliverToBoxAdapter(
@@ -42,56 +130,91 @@ class RestaurantDetailPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tags
-                  Row(
-                    children: [
-                      _buildTag(context, 'cuisine_seafood'.tr, AppColors.accentGold),
-                      const SizedBox(width: 8),
-                      _buildTag(context, 'cuisine_vietnamese'.tr, AppColors.success),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.spacingM),
-
-                  // Rating
+                   // Rating & Price
                   Row(
                     children: [
                       ...List.generate(5, (_) => const Icon(Icons.star, size: 18, color: AppColors.accentGold)),
                       const SizedBox(width: 8),
-                      Text('4.7 (198 ${'reviews'.tr})', style: Theme.of(context).textTheme.bodySmall),
+                      Text('${restaurant['rating'] ?? 0} (${restaurant['reviewCount'] ?? 0} ${'reviews'.tr})',
+                          style: Theme.of(context).textTheme.bodySmall),
+                      const Spacer(),
+                      Text(
+                        restaurant['priceRange'] ?? '\$\$', // e.g. $$
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: AppTheme.spacingM),
+                   const SizedBox(height: AppTheme.spacingS),
 
-                  // Info Row
+                  // Cuisine & Address
                   Row(
                     children: [
-                      _buildInfoChip(context, Icons.location_on, '1.2 ${'km_away'.tr}'),
-                      const SizedBox(width: AppTheme.spacingM),
-                      _buildInfoChip(context, Icons.schedule, '10:00 - 22:00'),
-                      const SizedBox(width: AppTheme.spacingM),
-                      _buildInfoChip(context, Icons.attach_money, '\$\$'),
+                      const Icon(Icons.restaurant_menu, size: 16, color: AppColors.textLight),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          (restaurant['cuisine'] as List?)?.join(', ') ?? 'Local Cuisine',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 16, color: AppColors.textLight),
+                      const SizedBox(width: 4),
+                       Expanded(
+                        child: Text(
+                          restaurant['address'] ?? '',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppTheme.spacingL),
 
-                  // Description
-                  Text('about_restaurant'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: AppTheme.spacingS),
-                  Text(
-                    'restaurant_desc'.tr,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textMedium, height: 1.6),
-                  ),
-                  const SizedBox(height: AppTheme.spacingL),
+                   // Opening Hours
+                   if (restaurant['openingHours'] != null) ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 20, color: AppColors.primaryBlue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Open: ${restaurant['openingHours']}',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.spacingL),
+                   ],
 
-                  // Popular Dishes
-                  Text('popular_dishes'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: AppTheme.spacingM),
-                  SizedBox(
-                    height: 160,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
+                   // Popular Dishes
+                   if (restaurant['popularDishes'] != null) ...[
+                      Text('popular_dishes'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: AppTheme.spacingM),
+                      Wrap(
+                        spacing: AppTheme.spacingS,
+                        runSpacing: AppTheme.spacingS,
+                        children: (restaurant['popularDishes'] as List).map((e) => Chip(
+                          label: Text(e.toString()),
+                          backgroundColor: AppColors.primaryLight.withOpacity(0.1),
+                          labelStyle: const TextStyle(color: AppColors.primaryBlue),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: AppTheme.spacingL),
+                   ],
+
+                  // Description
+                  Text('description'.tr, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: AppTheme.spacingS),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
                       children: [
-                        _buildDishCard(context, 'dish_grilled_squid'.tr, '\$12'),
                         _buildDishCard(context, 'dish_spring_rolls'.tr, '\$8'),
                         _buildDishCard(context, 'dish_pho'.tr, '\$6'),
                         _buildDishCard(context, 'dish_seafood_hotpot'.tr, '\$25'),
@@ -130,30 +253,26 @@ class RestaurantDetailPage extends StatelessWidget {
           color: AppColors.backgroundWhite,
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -2))],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.phone),
-                label: Text('call'.tr),
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-              ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+                final contact = restaurant['contactInfo'] as Map<String, dynamic>?;
+                Get.bottomSheet(
+                  ContactBottomSheet(
+                    phoneNumber: contact?['phone'],
+                    email: contact?['email'],
+                    website: contact?['website'],
+                  ),
+                );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
             ),
-            const SizedBox(width: AppTheme.spacingM),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.calendar_today),
-                label: Text('reserve_table'.tr),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: AppColors.accentGold,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ],
+            child: Text('contact'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          ),
         ),
       ),
     );
